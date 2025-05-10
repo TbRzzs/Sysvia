@@ -15,6 +15,8 @@ interface DataTableProps<T> {
   selectedItems?: T[];
   onSelectItem?: (item: T) => void;
   showCheckboxes?: boolean;
+  renderExpandedRow?: (item: T) => React.ReactNode;
+  expandedItems?: (string | number)[];
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -24,6 +26,8 @@ export function DataTable<T extends { id?: string | number }>({
   selectedItems = [],
   onSelectItem,
   showCheckboxes = false,
+  renderExpandedRow,
+  expandedItems = [],
 }: DataTableProps<T>) {
   const [sortConfig, setSortConfig] = React.useState<{
     key: string;
@@ -48,6 +52,10 @@ export function DataTable<T extends { id?: string | number }>({
     return selectedItems.some(selectedItem => 
       (selectedItem as any).id === (item as any).id
     );
+  };
+
+  const isExpanded = (item: T) => {
+    return expandedItems.includes((item as any).id);
   };
 
   return (
@@ -86,39 +94,47 @@ export function DataTable<T extends { id?: string | number }>({
         </thead>
         <tbody>
           {data.map((item, rowIndex) => (
-            <tr
-              key={rowIndex}
-              className={cn(
-                "border-b transition-colors hover:bg-muted/50",
-                onRowClick && "cursor-pointer",
-                isSelected(item) && "bg-secondary"
-              )}
-              onClick={() => onRowClick?.(item)}
-            >
-              {showCheckboxes && (
-                <td className="p-4 align-middle">
-                  <div className="flex items-center justify-center">
-                    <div
-                      className={cn(
-                        "h-4 w-4 rounded border border-primary flex items-center justify-center",
-                        isSelected(item) ? "bg-primary text-primary-foreground" : "bg-background"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectItem?.(item);
-                      }}
-                    >
-                      {isSelected(item) && <Check className="h-3 w-3" />}
+            <React.Fragment key={rowIndex}>
+              <tr
+                className={cn(
+                  "border-b transition-colors hover:bg-muted/50",
+                  onRowClick && "cursor-pointer",
+                  isSelected(item) && "bg-secondary"
+                )}
+                onClick={() => onRowClick?.(item)}
+              >
+                {showCheckboxes && (
+                  <td className="p-4 align-middle">
+                    <div className="flex items-center justify-center">
+                      <div
+                        className={cn(
+                          "h-4 w-4 rounded border border-primary flex items-center justify-center",
+                          isSelected(item) ? "bg-primary text-primary-foreground" : "bg-background"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectItem?.(item);
+                        }}
+                      >
+                        {isSelected(item) && <Check className="h-3 w-3" />}
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                )}
+                {columns.map((column) => (
+                  <td key={column.id} className="px-4 py-3">
+                    {column.cell(item)}
+                  </td>
+                ))}
+              </tr>
+              {renderExpandedRow && isExpanded(item) && (
+                <tr>
+                  <td colSpan={columns.length + (showCheckboxes ? 1 : 0)}>
+                    {renderExpandedRow(item)}
+                  </td>
+                </tr>
               )}
-              {columns.map((column) => (
-                <td key={column.id} className="px-4 py-3">
-                  {column.cell(item)}
-                </td>
-              ))}
-            </tr>
+            </React.Fragment>
           ))}
         </tbody>
       </table>

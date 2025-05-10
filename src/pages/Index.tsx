@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppSidebar } from '../components/app-sidebar';
 import { SearchBar } from '../components/search-bar';
@@ -8,6 +7,7 @@ import { DataChart } from '../components/data-chart';
 import { Pagination } from '../components/pagination';
 import { 
   Download, 
+  Upload,
   Edit, 
   MonitorDown, 
   Router, 
@@ -16,8 +16,15 @@ import {
   MoreHorizontal,
   BarChart2,
   Laptop,
-  Calendar
+  Calendar,
+  Plus
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 // Datos de ejemplo para los equipos
 const equiposData = [
@@ -38,7 +45,13 @@ const equiposData = [
     referencia: 'ASUS Vivobook 15 IX1607I',
     serial: 'PC-4X93-8Z70QL',
     tipoEquipo: 'Laptop',
-    monitor: true
+    monitor: true,
+    monitorInfo: {
+      marca: 'Dell',
+      activo: '9875',
+      serial: 'MON-7H32-9KLMN',
+      estado: 'Operativo'
+    }
   },
   { 
     id: 2, 
@@ -137,7 +150,6 @@ const equiposData = [
   },
 ];
 
-// Datos para el gráfico
 const chartData = [
   { name: 'Ene', desktop: 40, laptop: 24, servidor: 12 },
   { name: 'Feb', desktop: 42, laptop: 26, servidor: 12 },
@@ -155,11 +167,42 @@ const chartData = [
 
 const Index = () => {
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
-  const [expandedItem, setExpandedItem] = useState<number | null>(null);
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSede, setSelectedSede] = useState("Todos");
   const [selectedArea, setSelectedArea] = useState("Todos");
+  const [addEquipoModalOpen, setAddEquipoModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const { toast } = useToast();
+  
+  // Form state for adding new equipment
+  const [newEquipo, setNewEquipo] = useState({
+    hostname: '',
+    ip: '',
+    sede: 'Paquetería Express',
+    area: 'Tecnología',
+    responsable: '',
+    mac: '',
+    procesador: '',
+    memoriaRam: '',
+    discoDuro: '',
+    tipoDisco: 'SSD',
+    activo: '',
+    marca: '',
+    referencia: '',
+    serial: '',
+    tipoEquipo: 'Laptop',
+    monitor: false,
+    monitorInfo: {
+      marca: '',
+      activo: '',
+      serial: '',
+      estado: 'Operativo'
+    }
+  });
 
   const toggleSelectItem = (item: any) => {
     if (selectedItems.some(selectedItem => selectedItem.id === item.id)) {
@@ -170,7 +213,49 @@ const Index = () => {
   };
 
   const toggleExpandItem = (id: number) => {
-    setExpandedItem(expandedItem === id ? null : id);
+    if (expandedItems.includes(id)) {
+      setExpandedItems(expandedItems.filter(itemId => itemId !== id));
+    } else {
+      setExpandedItems([...expandedItems, id]);
+    }
+  };
+
+  const handleAddEquipo = () => {
+    // Aquí iría la lógica para agregar un nuevo equipo
+    // Por ahora, solo cerraremos el modal y mostraremos una notificación
+    setAddEquipoModalOpen(false);
+    toast({
+      title: "Equipo agregado",
+      description: "El equipo ha sido agregado exitosamente."
+    });
+  };
+
+  const handleImport = () => {
+    // Simulación de importación
+    setImportModalOpen(false);
+    toast({
+      title: "Importación exitosa",
+      description: "Los equipos han sido importados correctamente."
+    });
+  };
+
+  const handleExport = () => {
+    // Simulación de exportación
+    setExportModalOpen(false);
+    toast({
+      title: "Exportación exitosa",
+      description: "Los datos han sido exportados correctamente."
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    // Simulación de eliminación
+    setConfirmDeleteOpen(false);
+    toast({
+      title: "Equipos eliminados",
+      description: `${selectedItems.length} equipos han sido eliminados.`
+    });
+    setSelectedItems([]);
   };
 
   const columns = [
@@ -216,7 +301,7 @@ const Index = () => {
             }}
             className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-envio-gray-100 text-envio-gray-500"
           >
-            <ChevronDown className={`h-5 w-5 transition-transform ${expandedItem === item.id ? 'transform rotate-180' : ''}`} />
+            <ChevronDown className={`h-5 w-5 transition-transform ${expandedItems.includes(item.id) ? 'transform rotate-180' : ''}`} />
           </button>
           <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-envio-gray-100 text-envio-gray-500">
             <MoreHorizontal className="h-5 w-5" />
@@ -239,10 +324,24 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center px-4 py-2 text-sm font-medium text-white bg-envio-red rounded-lg hover:bg-envio-red/90 focus:outline-none focus:ring-2 focus:ring-envio-red/50">
+              <Button 
+                variant="default" 
+                onClick={() => setAddEquipoModalOpen(true)}
+                className="bg-envio-red text-white hover:bg-envio-red/90"
+              >
                 <span>Añadir Equipo</span>
                 <Plus className="ml-2 h-4 w-4" />
-              </button>
+              </Button>
+              
+              {selectedItems.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  className="border-red-500 text-red-500 hover:bg-red-50"
+                >
+                  Eliminar seleccionados
+                </Button>
+              )}
             </div>
           </div>
         </header>
@@ -380,15 +479,28 @@ const Index = () => {
                 </div>
               </div>
               
-              <button className="flex items-center px-3 py-2 text-sm text-envio-red border border-envio-red rounded-lg hover:bg-envio-red/5">
+              <Button 
+                variant="outline" 
+                className="flex items-center text-sm text-envio-red border-envio-red hover:bg-envio-red/5"
+                onClick={() => setExportModalOpen(true)}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Exportar
-              </button>
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="flex items-center text-sm text-envio-blue border-envio-blue hover:bg-envio-blue/5"
+                onClick={() => setImportModalOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
             </div>
           </div>
           
           {/* Table */}
-          <div className="bg-white rounded-xl shadow-sm border">
+          <div className="bg-white rounded-xl shadow-sm border mb-6">
             <DataTable 
               data={equiposData}
               columns={columns}
@@ -396,89 +508,120 @@ const Index = () => {
               onSelectItem={toggleSelectItem}
               showCheckboxes={true}
               onRowClick={(item) => toggleExpandItem(item.id)}
-            />
-            
-            {/* Detail panel when expanded */}
-            {expandedItem !== null && (
-              <div className="p-4 bg-envio-gray-50 border-t animated-expand">
-                {equiposData
-                  .filter(item => item.id === expandedItem)
-                  .map(item => (
-                    <div key={item.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Hostname</div>
-                          <div className="font-medium">{item.hostname}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">MAC</div>
-                          <div className="font-medium">{item.mac}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">IP</div>
-                          <div className="font-medium">{item.ip}</div>
-                        </div>
+              renderExpandedRow={(item) => (
+                <div className="p-4 bg-envio-gray-50 border-t animated-expand">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Hostname</div>
+                        <div className="font-medium">{item.hostname}</div>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Procesador</div>
-                          <div className="font-medium">{item.procesador}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Memoria RAM</div>
-                          <div className="font-medium">{item.memoriaRam}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Disco Duro</div>
-                          <div className="font-medium">{item.discoDuro} ({item.tipoDisco})</div>
-                        </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">MAC</div>
+                        <div className="font-medium">{item.mac}</div>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Marca</div>
-                          <div className="font-medium">{item.marca}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Referencia</div>
-                          <div className="font-medium">{item.referencia}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Serial</div>
-                          <div className="font-medium">{item.serial}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Tipo de Equipo</div>
-                          <div className="font-medium">{item.tipoEquipo}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Activo</div>
-                          <div className="font-medium">{item.activo}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-envio-gray-500">Monitor</div>
-                          <div className="font-medium">{item.monitor ? 'Sí' : 'No'}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="col-span-full flex justify-end">
-                        <button className="flex items-center px-3 py-2 text-sm border border-envio-gray-300 rounded-lg hover:bg-envio-gray-100 mr-2">
-                          <BarChart2 className="h-4 w-4 mr-2" />
-                          Ver historial
-                        </button>
-                        <button className="flex items-center px-3 py-2 text-sm text-white bg-envio-red rounded-lg hover:bg-envio-red/90">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar equipo
-                        </button>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">IP</div>
+                        <div className="font-medium">{item.ip}</div>
                       </div>
                     </div>
-                  ))}
-              </div>
-            )}
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Procesador</div>
+                        <div className="font-medium">{item.procesador}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Memoria RAM</div>
+                        <div className="font-medium">{item.memoriaRam}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Disco Duro</div>
+                        <div className="font-medium">{item.discoDuro} ({item.tipoDisco})</div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Marca</div>
+                        <div className="font-medium">{item.marca}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Referencia</div>
+                        <div className="font-medium">{item.referencia}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Serial</div>
+                        <div className="font-medium">{item.serial}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Tipo de Equipo</div>
+                        <div className="font-medium">{item.tipoEquipo}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Activo</div>
+                        <div className="font-medium">{item.activo}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-envio-gray-500">Monitor</div>
+                        <div className="font-medium">{item.monitor ? 'Sí' : 'No'}</div>
+                      </div>
+                    </div>
+
+                    {item.monitor && (
+                      <div className="col-span-full mt-2">
+                        <div className="text-sm font-medium mb-2 border-b pb-1">Información del Monitor</div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <div className="text-xs text-envio-gray-500">Marca</div>
+                            <div className="font-medium">{item.monitorInfo?.marca}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-envio-gray-500">Activo</div>
+                            <div className="font-medium">{item.monitorInfo?.activo}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-envio-gray-500">Serial</div>
+                            <div className="font-medium">{item.monitorInfo?.serial}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-envio-gray-500">Estado</div>
+                            <div className="font-medium">{item.monitorInfo?.estado}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="col-span-full flex justify-end">
+                      <Button 
+                        variant="outline"
+                        className="mr-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <BarChart2 className="h-4 w-4 mr-2" />
+                        Ver historial
+                      </Button>
+                      <Button 
+                        variant="default"
+                        className="bg-envio-red hover:bg-envio-red/90 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar equipo
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              expandedItems={expandedItems}
+            />
             
             <Pagination 
               currentPage={currentPage} 
@@ -488,26 +631,178 @@ const Index = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
-};
 
-const Plus = (props: any) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M5 12h14" />
-    <path d="M12 5v14" />
-  </svg>
-);
+      {/* Modal para añadir equipos */}
+      <Dialog open={addEquipoModalOpen} onOpenChange={setAddEquipoModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Añadir Nuevo Equipo</DialogTitle>
+            <DialogDescription>
+              Complete la información del equipo a registrar en el inventario.
+            </DialogDescription>
+          </DialogHeader>
 
-export default Index;
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hostname</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.hostname}
+                onChange={(e) => setNewEquipo({...newEquipo, hostname: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">IP</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.ip}
+                onChange={(e) => setNewEquipo({...newEquipo, ip: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sede</label>
+              <select 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.sede}
+                onChange={(e) => setNewEquipo({...newEquipo, sede: e.target.value})}
+              >
+                <option value="Paquetería Express">Paquetería Express</option>
+                <option value="Sede Principal">Sede Principal</option>
+                <option value="Bodega Norte">Bodega Norte</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Área</label>
+              <select 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.area}
+                onChange={(e) => setNewEquipo({...newEquipo, area: e.target.value})}
+              >
+                <option value="Tecnología">Tecnología</option>
+                <option value="Administración">Administración</option>
+                <option value="Operaciones">Operaciones</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Responsable</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.responsable}
+                onChange={(e) => setNewEquipo({...newEquipo, responsable: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">MAC</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.mac}
+                onChange={(e) => setNewEquipo({...newEquipo, mac: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Equipo</label>
+              <select 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.tipoEquipo}
+                onChange={(e) => setNewEquipo({...newEquipo, tipoEquipo: e.target.value})}
+              >
+                <option value="Laptop">Laptop</option>
+                <option value="Desktop">Desktop</option>
+                <option value="Servidor">Servidor</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Marca</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.marca}
+                onChange={(e) => setNewEquipo({...newEquipo, marca: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Referencia</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.referencia}
+                onChange={(e) => setNewEquipo({...newEquipo, referencia: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Serial</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.serial}
+                onChange={(e) => setNewEquipo({...newEquipo, serial: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Activo</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.activo}
+                onChange={(e) => setNewEquipo({...newEquipo, activo: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Procesador</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.procesador}
+                onChange={(e) => setNewEquipo({...newEquipo, procesador: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Memoria RAM</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.memoriaRam}
+                onChange={(e) => setNewEquipo({...newEquipo, memoriaRam: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Disco Duro</label>
+              <input 
+                type="text" 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.discoDuro}
+                onChange={(e) => setNewEquipo({...newEquipo, discoDuro: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo Disco</label>
+              <select 
+                className="w-full px-3 py-2 border rounded-md"
+                value={newEquipo.tipoDisco}
+                onChange={(e) => setNewEquipo({...newEquipo, tipoDisco: e.target.value})}
+              >
+                <option value="SSD">SSD</option>
+                <option value="HDD">HDD</option>
+              </select>
+            </div>
+
+            <div className="space-y-2 col-span-2">
+              <label
