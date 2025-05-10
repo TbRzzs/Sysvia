@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { SearchBar } from '@/components/search-bar';
 import { ChevronDown, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useEquipment } from '@/hooks/useEquipment';
 
 interface InventoryFiltersProps {
   onSearch: (query: string) => void;
@@ -23,6 +24,14 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
   onExport,
   onImport
 }) => {
+  const { equipos } = useEquipment();
+  
+  // Obtener sedes únicas
+  const sedes = ['Todos', ...new Set(equipos.map(e => e.sede).filter(Boolean))];
+  
+  // Obtener áreas únicas
+  const areas = ['Todos', ...new Set(equipos.map(e => e.area).filter(Boolean))];
+  
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       <SearchBar 
@@ -30,17 +39,16 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
         onSearch={onSearch}
       />
       
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
         <div className="relative">
           <select
             value={selectedSede}
             onChange={(e) => setSelectedSede(e.target.value)}
             className="appearance-none pl-3 pr-10 py-2 bg-white border border-envio-gray-200 rounded-lg focus:ring-2 focus:ring-envio-red/20 focus:border-envio-red text-sm outline-none"
           >
-            <option value="Todos">Todas las sedes</option>
-            <option value="Paquetería Express">Paquetería Express</option>
-            <option value="Sede Principal">Sede Principal</option>
-            <option value="Bodega Norte">Bodega Norte</option>
+            {sedes.map(sede => (
+              <option key={sede} value={sede}>{sede === 'Todos' ? 'Todas las sedes' : sede}</option>
+            ))}
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
             <ChevronDown className="w-4 h-4 text-envio-gray-400" />
@@ -53,10 +61,9 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
             onChange={(e) => setSelectedArea(e.target.value)}
             className="appearance-none pl-3 pr-10 py-2 bg-white border border-envio-gray-200 rounded-lg focus:ring-2 focus:ring-envio-red/20 focus:border-envio-red text-sm outline-none"
           >
-            <option value="Todos">Todas las áreas</option>
-            <option value="Tecnología">Tecnología</option>
-            <option value="Administración">Administración</option>
-            <option value="Operaciones">Operaciones</option>
+            {areas.map(area => (
+              <option key={area} value={area}>{area === 'Todos' ? 'Todas las áreas' : area}</option>
+            ))}
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
             <ChevronDown className="w-4 h-4 text-envio-gray-400" />

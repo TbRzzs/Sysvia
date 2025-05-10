@@ -4,61 +4,67 @@ import { DataTable } from '@/components/ui/data-table';
 import { Pagination } from '@/components/pagination';
 import { ChevronDown, MoreHorizontal, BarChart2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Equipo } from '@/services/equipmentService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface EquipmentTableProps {
-  data: any[];
-  selectedItems: any[];
-  expandedItems: number[];
-  onSelectItem: (item: any) => void;
-  toggleExpandItem: (id: number) => void;
+  data: Equipo[];
+  loading: boolean;
+  selectedItems: Equipo[];
+  expandedItems: string[];
+  onSelectItem: (item: Equipo) => void;
+  toggleExpandItem: (id: string) => void;
   currentPage: number;
   setCurrentPage: (page: number) => void;
+  onEditEquipo: (equipo: Equipo) => void;
 }
 
 export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   data,
+  loading,
   selectedItems,
   expandedItems,
   onSelectItem,
   toggleExpandItem,
   currentPage,
   setCurrentPage,
+  onEditEquipo,
 }) => {
   const columns = [
     {
       id: "hostname",
       header: "Hostname",
-      cell: (item: any) => <div className="font-medium">{item.hostname}</div>,
+      cell: (item: Equipo) => <div className="font-medium">{item.hostname}</div>,
       sortable: true,
     },
     {
       id: "ip",
       header: "IP",
-      cell: (item: any) => item.ip,
+      cell: (item: Equipo) => item.ip,
       sortable: true,
     },
     {
       id: "sede",
       header: "Sede",
-      cell: (item: any) => item.sede,
+      cell: (item: Equipo) => item.sede,
       sortable: true,
     },
     {
       id: "area",
       header: "Área",
-      cell: (item: any) => item.area,
+      cell: (item: Equipo) => item.area,
       sortable: true,
     },
     {
       id: "responsable",
       header: "Responsable",
-      cell: (item: any) => item.responsable,
+      cell: (item: Equipo) => item.responsable,
       sortable: true,
     },
     {
       id: "actions",
       header: "",
-      cell: (item: any) => (
+      cell: (item: Equipo) => (
         <div className="flex items-center justify-end space-x-2">
           <button 
             onClick={(e) => {
@@ -77,6 +83,14 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border mb-6">
+        <Skeleton className="h-[400px] w-full rounded-xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border mb-6">
       <DataTable 
@@ -85,8 +99,8 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
         selectedItems={selectedItems}
         onSelectItem={onSelectItem}
         showCheckboxes={true}
-        onRowClick={(item) => toggleExpandItem(item.id)}
-        renderExpandedRow={(item) => (
+        onRowClick={(item: Equipo) => toggleExpandItem(item.id)}
+        renderExpandedRow={(item: Equipo) => (
           <div className="p-4 bg-envio-gray-50 border-t animated-expand">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
               <div className="space-y-3">
@@ -149,7 +163,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                 </div>
               </div>
 
-              {item.monitor && (
+              {item.monitor && item.monitorInfo && (
                 <div className="col-span-full mt-2">
                   <div className="text-sm font-medium mb-2 border-b pb-1">Información del Monitor</div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -189,6 +203,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                   className="bg-envio-red hover:bg-envio-red/90 text-white"
                   onClick={(e) => {
                     e.stopPropagation();
+                    onEditEquipo(item);
                   }}
                 >
                   <Edit className="h-4 w-4 mr-2" />
@@ -203,7 +218,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
       
       <Pagination 
         currentPage={currentPage} 
-        totalPages={10} 
+        totalPages={Math.ceil(data.length / 10)} 
         onPageChange={setCurrentPage}
       />
     </div>

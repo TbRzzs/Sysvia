@@ -1,12 +1,26 @@
 
 import React from 'react';
 import { DataChart } from '@/components/data-chart';
+import { useChartData } from '@/hooks/useChartData';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface HistoryChartProps {
-  data: any[];
-}
+export const HistoryChart: React.FC = () => {
+  const { chartData, loading } = useChartData();
 
-export const HistoryChart: React.FC<HistoryChartProps> = ({ data }) => {
+  if (loading) {
+    return (
+      <div className="bg-white p-4 rounded-xl shadow-sm border mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-medium text-lg">Histórico de Equipos</h3>
+            <p className="text-envio-gray-500 text-sm">Cargando datos...</p>
+          </div>
+        </div>
+        <Skeleton className="h-[250px] w-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-4 rounded-xl shadow-sm border mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -31,7 +45,7 @@ export const HistoryChart: React.FC<HistoryChartProps> = ({ data }) => {
       </div>
       
       <DataChart 
-        data={data} 
+        data={chartData} 
         lines={[
           { dataKey: 'desktop', stroke: '#0A84FF', name: 'Desktop' },
           { dataKey: 'laptop', stroke: '#30D158', name: 'Laptop' },

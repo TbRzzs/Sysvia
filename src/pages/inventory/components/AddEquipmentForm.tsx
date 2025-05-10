@@ -1,14 +1,16 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Equipo } from '@/services/equipmentService';
 
 interface AddEquipmentFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  newEquipo: any;
-  setNewEquipo: (equipo: any) => void;
-  onSubmit: () => void;
+  newEquipo: Partial<Equipo>;
+  setNewEquipo: (equipo: Partial<Equipo>) => void;
+  onSubmit: (equipo: Partial<Equipo>) => void;
+  isEdit: boolean;
 }
 
 export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
@@ -16,15 +18,67 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
   onOpenChange,
   newEquipo,
   setNewEquipo,
-  onSubmit
+  onSubmit,
+  isEdit
 }) => {
+  
+  // Manejar cambios en los campos de texto y selección
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewEquipo({
+      ...newEquipo,
+      [name]: value
+    });
+  };
+
+  // Manejar cambios en el checkbox
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setNewEquipo({
+      ...newEquipo,
+      [name]: checked,
+      ...(name === 'monitor' && !checked ? { monitorInfo: undefined } : {})
+    });
+  };
+
+  // Manejar cambios en los campos del monitor
+  const handleMonitorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewEquipo({
+      ...newEquipo,
+      monitorInfo: {
+        ...newEquipo.monitorInfo || {},
+        [name]: value
+      }
+    });
+  };
+
+  // Inicializar monitorInfo si no existe y monitor es true
+  useEffect(() => {
+    if (newEquipo.monitor && !newEquipo.monitorInfo) {
+      setNewEquipo({
+        ...newEquipo,
+        monitorInfo: {
+          marca: '',
+          activo: '',
+          serial: '',
+          estado: 'Operativo'
+        }
+      });
+    }
+  }, [newEquipo.monitor]);
+
+  const handleSubmit = () => {
+    onSubmit(newEquipo);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Añadir Nuevo Equipo</DialogTitle>
+          <DialogTitle>{isEdit ? 'Editar Equipo' : 'Añadir Nuevo Equipo'}</DialogTitle>
           <DialogDescription>
-            Complete la información del equipo a registrar en el inventario.
+            Complete la información del equipo a {isEdit ? 'actualizar' : 'registrar'} en el inventario.
           </DialogDescription>
         </DialogHeader>
 
@@ -33,9 +87,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Hostname</label>
             <input 
               type="text" 
+              name="hostname"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.hostname}
-              onChange={(e) => setNewEquipo({...newEquipo, hostname: e.target.value})}
+              value={newEquipo.hostname || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -43,19 +98,22 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">IP</label>
             <input 
               type="text" 
+              name="ip"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.ip}
-              onChange={(e) => setNewEquipo({...newEquipo, ip: e.target.value})}
+              value={newEquipo.ip || ''}
+              onChange={handleChange}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Sede</label>
             <select 
+              name="sede"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.sede}
-              onChange={(e) => setNewEquipo({...newEquipo, sede: e.target.value})}
+              value={newEquipo.sede || ''}
+              onChange={handleChange}
             >
+              <option value="">Seleccionar</option>
               <option value="Paquetería Express">Paquetería Express</option>
               <option value="Sede Principal">Sede Principal</option>
               <option value="Bodega Norte">Bodega Norte</option>
@@ -65,10 +123,12 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Área</label>
             <select 
+              name="area"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.area}
-              onChange={(e) => setNewEquipo({...newEquipo, area: e.target.value})}
+              value={newEquipo.area || ''}
+              onChange={handleChange}
             >
+              <option value="">Seleccionar</option>
               <option value="Tecnología">Tecnología</option>
               <option value="Administración">Administración</option>
               <option value="Operaciones">Operaciones</option>
@@ -79,9 +139,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Responsable</label>
             <input 
               type="text" 
+              name="responsable"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.responsable}
-              onChange={(e) => setNewEquipo({...newEquipo, responsable: e.target.value})}
+              value={newEquipo.responsable || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -89,19 +150,22 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">MAC</label>
             <input 
               type="text" 
+              name="mac"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.mac}
-              onChange={(e) => setNewEquipo({...newEquipo, mac: e.target.value})}
+              value={newEquipo.mac || ''}
+              onChange={handleChange}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Tipo de Equipo</label>
             <select 
+              name="tipoEquipo"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.tipoEquipo}
-              onChange={(e) => setNewEquipo({...newEquipo, tipoEquipo: e.target.value})}
+              value={newEquipo.tipoEquipo || ''}
+              onChange={handleChange}
             >
+              <option value="">Seleccionar</option>
               <option value="Laptop">Laptop</option>
               <option value="Desktop">Desktop</option>
               <option value="Servidor">Servidor</option>
@@ -112,9 +176,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Marca</label>
             <input 
               type="text" 
+              name="marca"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.marca}
-              onChange={(e) => setNewEquipo({...newEquipo, marca: e.target.value})}
+              value={newEquipo.marca || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -122,9 +187,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Referencia</label>
             <input 
               type="text" 
+              name="referencia"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.referencia}
-              onChange={(e) => setNewEquipo({...newEquipo, referencia: e.target.value})}
+              value={newEquipo.referencia || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -132,9 +198,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Serial</label>
             <input 
               type="text" 
+              name="serial"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.serial}
-              onChange={(e) => setNewEquipo({...newEquipo, serial: e.target.value})}
+              value={newEquipo.serial || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -142,9 +209,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Activo</label>
             <input 
               type="text" 
+              name="activo"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.activo}
-              onChange={(e) => setNewEquipo({...newEquipo, activo: e.target.value})}
+              value={newEquipo.activo || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -152,9 +220,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Procesador</label>
             <input 
               type="text" 
+              name="procesador"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.procesador}
-              onChange={(e) => setNewEquipo({...newEquipo, procesador: e.target.value})}
+              value={newEquipo.procesador || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -162,9 +231,10 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Memoria RAM</label>
             <input 
               type="text" 
+              name="memoriaRam"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.memoriaRam}
-              onChange={(e) => setNewEquipo({...newEquipo, memoriaRam: e.target.value})}
+              value={newEquipo.memoriaRam || ''}
+              onChange={handleChange}
             />
           </div>
 
@@ -172,19 +242,22 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="text-sm font-medium">Disco Duro</label>
             <input 
               type="text" 
+              name="discoDuro"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.discoDuro}
-              onChange={(e) => setNewEquipo({...newEquipo, discoDuro: e.target.value})}
+              value={newEquipo.discoDuro || ''}
+              onChange={handleChange}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Tipo Disco</label>
             <select 
+              name="tipoDisco"
               className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.tipoDisco}
-              onChange={(e) => setNewEquipo({...newEquipo, tipoDisco: e.target.value})}
+              value={newEquipo.tipoDisco || ''}
+              onChange={handleChange}
             >
+              <option value="">Seleccionar</option>
               <option value="SSD">SSD</option>
               <option value="HDD">HDD</option>
             </select>
@@ -194,8 +267,9 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
             <label className="flex items-center space-x-2">
               <input 
                 type="checkbox"
-                checked={newEquipo.monitor}
-                onChange={(e) => setNewEquipo({...newEquipo, monitor: e.target.checked})}
+                name="monitor"
+                checked={newEquipo.monitor || false}
+                onChange={handleCheckboxChange}
                 className="rounded border-gray-300"
               />
               <span className="text-sm font-medium">¿Tiene monitor?</span>
@@ -211,47 +285,39 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
                     <label className="text-xs font-medium">Marca</label>
                     <input 
                       type="text" 
+                      name="marca"
                       className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo.marca}
-                      onChange={(e) => setNewEquipo({
-                        ...newEquipo, 
-                        monitorInfo: {...newEquipo.monitorInfo, marca: e.target.value}
-                      })}
+                      value={newEquipo.monitorInfo?.marca || ''}
+                      onChange={handleMonitorChange}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium">Activo</label>
                     <input 
                       type="text" 
+                      name="activo"
                       className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo.activo}
-                      onChange={(e) => setNewEquipo({
-                        ...newEquipo, 
-                        monitorInfo: {...newEquipo.monitorInfo, activo: e.target.value}
-                      })}
+                      value={newEquipo.monitorInfo?.activo || ''}
+                      onChange={handleMonitorChange}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium">Serial</label>
                     <input 
                       type="text" 
+                      name="serial"
                       className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo.serial}
-                      onChange={(e) => setNewEquipo({
-                        ...newEquipo, 
-                        monitorInfo: {...newEquipo.monitorInfo, serial: e.target.value}
-                      })}
+                      value={newEquipo.monitorInfo?.serial || ''}
+                      onChange={handleMonitorChange}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium">Estado</label>
                     <select 
+                      name="estado"
                       className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo.estado}
-                      onChange={(e) => setNewEquipo({
-                        ...newEquipo, 
-                        monitorInfo: {...newEquipo.monitorInfo, estado: e.target.value}
-                      })}
+                      value={newEquipo.monitorInfo?.estado || 'Operativo'}
+                      onChange={handleMonitorChange}
                     >
                       <option value="Operativo">Operativo</option>
                       <option value="Dañado">Dañado</option>
@@ -266,7 +332,9 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="submit" onClick={onSubmit} className="bg-envio-red hover:bg-envio-red/90">Guardar Equipo</Button>
+          <Button type="submit" onClick={handleSubmit} className="bg-envio-red hover:bg-envio-red/90">
+            {isEdit ? 'Actualizar Equipo' : 'Guardar Equipo'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

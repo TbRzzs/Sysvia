@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,73 +13,162 @@ import { EquipmentTable } from './components/EquipmentTable';
 import { AddEquipmentForm } from './components/AddEquipmentForm';
 import { ImportExportModals } from './components/ImportExportModals';
 
-// Import mock data
-import { equiposData, chartData, defaultNewEquipo } from './constants/mockData';
+// Import hooks and services
+import { useEquipment } from '@/hooks/useEquipment';
+import { Equipo } from '@/services/equipmentService';
 
 const Inventory = () => {
-  const [selectedItems, setSelectedItems] = useState<any[]>([]);
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  // Estados para filtros y paginación
+  const [selectedItems, setSelectedItems] = useState<Equipo[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSede, setSelectedSede] = useState("Todos");
   const [selectedArea, setSelectedArea] = useState("Todos");
+  
+  // Estados para modales
   const [addEquipoModalOpen, setAddEquipoModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  // Hook de toast
   const { toast } = useToast();
   
-  // Form state for adding new equipment
-  const [newEquipo, setNewEquipo] = useState(defaultNewEquipo);
-
-  const toggleSelectItem = (item: any) => {
+  // Hook de equipos
+  const { 
+    equipos, 
+    loading, 
+    addEquipo, 
+    editEquipo, 
+    removeSelectedEquipos, 
+    fetchEquipos 
+  } = useEquipment();
+  
+  // Estado para equipo nuevo/edición
+  const [newEquipo, setNewEquipo] = useState<Partial<Equipo>>({
+    hostname: '',
+    ip: '',
+    sede: '',
+    area: '',
+    responsable: '',
+    mac: '',
+    procesador: '',
+    memoriaRam: '',
+    discoDuro: '',
+    tipoDisco: '',
+    activo: '',
+    marca: '',
+    referencia: '',
+    serial: '',
+    tipoEquipo: '',
+    monitor: false,
+  });
+  
+  // Filtrar los equipos basados en los filtros seleccionados
+  const filteredEquipos = equipos.filter(equipo => {
+    // Filtrar por búsqueda
+    const matchesSearch = searchQuery 
+      ? equipo.hostname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        equipo.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        equipo.responsable?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+      
+    // Filtrar por sede
+    const matchesSede = selectedSede === "Todos" 
+      ? true 
+      : equipo.sede === selectedSede;
+      
+    // Filtrar por área
+    const matchesArea = selectedArea === "Todos" 
+      ? true 
+      : equipo.area === selectedArea;
+      
+    return matchesSearch && matchesSede && matchesArea;
+  });
+  
+  // Páginar los resultados
+  const itemsPerPage = 10;
+  const paginatedEquipos = filteredEquipos.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  
+  // Seleccionar/deseleccionar ítem
+  const toggleSelectItem = (item: Equipo) => {
     if (selectedItems.some(selectedItem => selectedItem.id === item.id)) {
       setSelectedItems(selectedItems.filter(selectedItem => selectedItem.id !== item.id));
     } else {
       setSelectedItems([...selectedItems, item]);
     }
   };
-
-  const toggleExpandItem = (id: number) => {
+  
+  // Expandir/colapsar ítem
+  const toggleExpandItem = (id: string) => {
     if (expandedItems.includes(id)) {
       setExpandedItems(expandedItems.filter(itemId => itemId !== id));
     } else {
       setExpandedItems([...expandedItems, id]);
     }
   };
-
-  const handleAddEquipo = () => {
+  
+  // Manejar añadir equipo
+  const handleAddEquipo = (equipo: Partial<Equipo>) => {
+    if (isEditMode && equipo.id) {
+      // Editar equipo existente
+      editEquipo(equipo.id, equipo);
+      setIsEditMode(false);
+    } else {
+      // Añadir nuevo equipo
+      addEquipo(equipo as Omit<Equipo, 'id'>);
+    }
     setAddEquipoModalOpen(false);
-    toast({
-      title: "Equipo agregado",
-      description: "El equipo ha sido agregado exitosamente."
-    });
   };
-
-  const handleImport = () => {
-    setImportModalOpen(false);
-    toast({
-      title: "Importación exitosa",
-      description: "Los equipos han sido importados correctamente."
-    });
+  
+  // Manejar edición de equipo
+  const handleEditEquipo = (equipo: Equipo) => {
+    setNewEquipo(equipo);
+    setIsEditMode(true);
+    setAddEquipoModalOpen(true);
   };
-
-  const handleExport = () => {
-    setExportModalOpen(false);
-    toast({
-      title: "Exportación exitosa",
-      description: "Los datos han sido exportados correctamente."
-    });
-  };
-
+  
+  // Manejar eliminación de equipos seleccionados
   const handleDeleteSelected = () => {
+    const ids = selectedItems.map(item => item.id);
+    removeSelectedEquipos(ids);
     setConfirmDeleteOpen(false);
-    toast({
-      title: "Equipos eliminados",
-      description: `${selectedItems.length} equipos han sido eliminados.`
-    });
     setSelectedItems([]);
   };
+  
+  // Reset formulario al abrir modal para añadir equipo
+  useEffect(() => {
+    if (!addEquipoModalOpen && !isEditMode) {
+      setNewEquipo({
+        hostname: '',
+        ip: '',
+        sede: '',
+        area: '',
+        responsable: '',
+        mac: '',
+        procesador: '',
+        memoriaRam: '',
+        discoDuro: '',
+        tipoDisco: '',
+        activo: '',
+        marca: '',
+        referencia: '',
+        serial: '',
+        tipoEquipo: '',
+        monitor: false,
+      });
+    }
+  }, [addEquipoModalOpen]);
+  
+  // Resetear página actual cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedSede, selectedArea]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -96,7 +185,10 @@ const Inventory = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="default" 
-                onClick={() => setAddEquipoModalOpen(true)}
+                onClick={() => {
+                  setIsEditMode(false);
+                  setAddEquipoModalOpen(true);
+                }}
                 className="bg-envio-red text-white hover:bg-envio-red/90"
               >
                 <span>Añadir Equipo</span>
@@ -121,7 +213,7 @@ const Inventory = () => {
           <InventoryStats />
           
           {/* Chart Section */}
-          <HistoryChart data={chartData} />
+          <HistoryChart />
           
           {/* Filters Section */}
           <InventoryFilters 
@@ -136,13 +228,15 @@ const Inventory = () => {
           
           {/* Equipment Table */}
           <EquipmentTable 
-            data={equiposData}
+            data={paginatedEquipos}
+            loading={loading}
             selectedItems={selectedItems}
             expandedItems={expandedItems}
             onSelectItem={toggleSelectItem}
             toggleExpandItem={toggleExpandItem}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
+            onEditEquipo={handleEditEquipo}
           />
         </div>
       </div>
@@ -154,6 +248,7 @@ const Inventory = () => {
         newEquipo={newEquipo}
         setNewEquipo={setNewEquipo}
         onSubmit={handleAddEquipo}
+        isEdit={isEditMode}
       />
       
       <ImportExportModals 
@@ -163,9 +258,8 @@ const Inventory = () => {
         setExportModalOpen={setExportModalOpen}
         confirmDeleteOpen={confirmDeleteOpen}
         setConfirmDeleteOpen={setConfirmDeleteOpen}
-        onImport={handleImport}
-        onExport={handleExport}
         onDeleteSelected={handleDeleteSelected}
+        onImportComplete={fetchEquipos}
       />
     </div>
   );

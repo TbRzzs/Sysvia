@@ -9,13 +9,149 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      equipos: {
+        Row: {
+          activo: string | null
+          area: string | null
+          created_at: string
+          discoduro: string | null
+          hostname: string
+          id: string
+          ip: string | null
+          mac: string | null
+          marca: string | null
+          memoriaram: string | null
+          monitor: boolean | null
+          procesador: string | null
+          referencia: string | null
+          responsable: string | null
+          sede: string | null
+          serial: string | null
+          tipodisco: string | null
+          tipoequipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: string | null
+          area?: string | null
+          created_at?: string
+          discoduro?: string | null
+          hostname: string
+          id?: string
+          ip?: string | null
+          mac?: string | null
+          marca?: string | null
+          memoriaram?: string | null
+          monitor?: boolean | null
+          procesador?: string | null
+          referencia?: string | null
+          responsable?: string | null
+          sede?: string | null
+          serial?: string | null
+          tipodisco?: string | null
+          tipoequipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: string | null
+          area?: string | null
+          created_at?: string
+          discoduro?: string | null
+          hostname?: string
+          id?: string
+          ip?: string | null
+          mac?: string | null
+          marca?: string | null
+          memoriaram?: string | null
+          monitor?: boolean | null
+          procesador?: string | null
+          referencia?: string | null
+          responsable?: string | null
+          sede?: string | null
+          serial?: string | null
+          tipodisco?: string | null
+          tipoequipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      estadisticas_mensuales: {
+        Row: {
+          created_at: string
+          desktop: number | null
+          id: string
+          laptop: number | null
+          mes: string
+          servidor: number | null
+        }
+        Insert: {
+          created_at?: string
+          desktop?: number | null
+          id?: string
+          laptop?: number | null
+          mes: string
+          servidor?: number | null
+        }
+        Update: {
+          created_at?: string
+          desktop?: number | null
+          id?: string
+          laptop?: number | null
+          mes?: string
+          servidor?: number | null
+        }
+        Relationships: []
+      }
+      monitores: {
+        Row: {
+          activo: string | null
+          created_at: string
+          equipo_id: string
+          estado: string | null
+          id: string
+          marca: string | null
+          serial: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: string | null
+          created_at?: string
+          equipo_id: string
+          estado?: string | null
+          id?: string
+          marca?: string | null
+          serial?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: string | null
+          created_at?: string
+          equipo_id?: string
+          estado?: string | null
+          id?: string
+          marca?: string | null
+          serial?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitores_equipo_id_fkey"
+            columns: ["equipo_id"]
+            isOneToOne: false
+            referencedRelation: "equipos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      obtener_equipo_con_monitor: {
+        Args: { equipo_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
