@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,7 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
       monitorInfo: {
         ...newEquipo.monitorInfo || {},
         [name]: value
-      }
+      } as MonitorInfo
     });
   };
 
@@ -69,7 +68,24 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
   }, [newEquipo.monitor]);
 
   const handleSubmit = () => {
-    onSubmit(newEquipo);
+    // Ensure monitorInfo is complete if monitor is true
+    if (newEquipo.monitor && newEquipo.monitorInfo) {
+      // Make sure all required fields are set
+      const updatedMonitorInfo: MonitorInfo = {
+        id: newEquipo.monitorInfo.id,
+        marca: newEquipo.monitorInfo.marca || '',
+        activo: newEquipo.monitorInfo.activo || '',
+        serial: newEquipo.monitorInfo.serial || '',
+        estado: newEquipo.monitorInfo.estado || 'Operativo'
+      };
+      
+      onSubmit({
+        ...newEquipo,
+        monitorInfo: updatedMonitorInfo
+      });
+    } else {
+      onSubmit(newEquipo);
+    }
   };
 
   return (

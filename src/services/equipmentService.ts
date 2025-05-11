@@ -50,7 +50,13 @@ export const getChartData = async (): Promise<ChartDataPoint[]> => {
 
     if (error) throw error;
     
-    return data as ChartDataPoint[];
+    // Transform the data to match ChartDataPoint interface
+    return (data || []).map(item => ({
+      name: item.mes,
+      desktop: item.desktop || 0,
+      laptop: item.laptop || 0,
+      servidor: item.servidor || 0
+    }));
   } catch (error) {
     console.error('Error al obtener datos del gráfico:', error);
     return [];
@@ -68,29 +74,62 @@ export const fetchEquipos = async (): Promise<Equipo[]> => {
     if (error) throw error;
 
     const equipos = await Promise.all(
-      data.map(async (equipo) => {
-        if (equipo.monitor) {
+      (data || []).map(async (equipo) => {
+        // Map database column names to our interface properties
+        const mappedEquipo: Equipo = {
+          id: equipo.id,
+          hostname: equipo.hostname,
+          ip: equipo.ip || '',
+          sede: equipo.sede || '',
+          area: equipo.area || '',
+          responsable: equipo.responsable || '',
+          mac: equipo.mac || '',
+          procesador: equipo.procesador || '',
+          memoriaRam: equipo.memoriaram || '',  // Note: DB column name might be memoriaram
+          discoDuro: equipo.discoduro || '',    // Note: DB column name might be discoduro
+          tipoDisco: equipo.tipodisco || '',    // Note: DB column name might be tipodisco
+          activo: equipo.activo || '',
+          marca: equipo.marca || '',
+          referencia: equipo.referencia || '',
+          serial: equipo.serial || '',
+          tipoEquipo: equipo.tipoequipo || '',  // Note: DB column name might be tipoequipo
+          monitor: equipo.monitor || false,
+          created_at: equipo.created_at,
+          updated_at: equipo.updated_at
+        };
+
+        // If equipment has a monitor, fetch its details
+        if (mappedEquipo.monitor) {
           const { data: monitorData } = await supabase
             .from('monitores')
             .select('*')
-            .eq('equipo_id', equipo.id)
+            .eq('equipo_id', mappedEquipo.id)
             .single();
 
-          return { 
-            ...equipo, 
-            monitorInfo: monitorData || undefined
-          };
+          if (monitorData) {
+            mappedEquipo.monitorInfo = {
+              id: monitorData.id,
+              marca: monitorData.marca || '',
+              activo: monitorData.activo || '',
+              serial: monitorData.serial || '',
+              estado: monitorData.estado || ''
+            };
+          }
         }
-        return equipo;
+        
+        return mappedEquipo;
       })
     );
     
-    return equipos as Equipo[];
+    return equipos;
   } catch (error) {
     console.error('Error al obtener equipos:', error);
     return [];
   }
 };
+
+// Alias para compatibilidad con el hook existente
+export const getEquipos = fetchEquipos;
 
 // Obtener un equipo con sus detalles
 export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null> => {
@@ -101,45 +140,44 @@ export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null>
     if (error) throw error;
     if (!data) return null;
     
-    // Debemos transformar el resultado JSON a un objeto Equipo
-    if (typeof data === 'object') {
-      const equipo = {
-        id: data.id as string,
-        hostname: data.hostname as string,
-        ip: data.ip as string,
-        sede: data.sede as string,
-        area: data.area as string,
-        responsable: data.responsable as string,
-        mac: data.mac as string,
-        procesador: data.procesador as string,
-        memoriaRam: data.memoriaRam as string,
-        discoDuro: data.discoDuro as string,
-        tipoDisco: data.tipoDisco as string,
-        activo: data.activo as string,
-        marca: data.marca as string,
-        referencia: data.referencia as string,
-        serial: data.serial as string,
-        tipoEquipo: data.tipoEquipo as string,
-        monitor: data.monitor as boolean,
-        created_at: data.created_at as string,
-        updated_at: data.updated_at as string
-      } as Equipo;
-      
-      // Añadir monitor si existe
-      if (data.monitorInfo && typeof data.monitorInfo === 'object') {
-        equipo.monitorInfo = {
-          id: data.monitorInfo.id as string,
-          marca: data.monitorInfo.marca as string,
-          activo: data.monitorInfo.activo as string,
-          serial: data.monitorInfo.serial as string,
-          estado: data.monitorInfo.estado as string
-        };
-      }
-      
-      return equipo;
-    }
+    // Convertir el resultado a un objeto Equipo
+    // Usando type assertion con as para ayudar con la tipización
+    const result = data as any;
     
-    return null;
+    const equipo: Equipo = {
+      id: result.id,
+      hostname: result.hostname,
+      ip: result.ip || '',
+      sede: result.sede || '',
+      area: result.area || '',
+      responsable: result.responsable || '',
+      mac: result.mac || '',
+      procesador: result.procesador || '',
+      memoriaRam: result.memoriaRam || '',
+      discoDuro: result.discoDuro || '',
+      tipoDisco: result.tipoDisco || '',
+      activo: result.activo || '',
+      marca: result.marca || '',
+      referencia: result.referencia || '',
+      serial: result.serial || '',
+      tipoEquipo: result.tipoEquipo || '',
+      monitor: !!result.monitor,
+      created_at: result.created_at,
+      updated_at: result.updated_at
+    };
+      
+    // Añadir monitor si existe
+    if (equipo.monitor && result.monitorInfo) {
+      equipo.monitorInfo = {
+        id: result.monitorInfo.id,
+        marca: result.monitorInfo.marca || '',
+        activo: result.monitorInfo.activo || '',
+        serial: result.monitorInfo.serial || '',
+        estado: result.monitorInfo.estado || ''
+      };
+    }
+      
+    return equipo;
   } catch (error) {
     console.error('Error al obtener equipo con detalles:', error);
     return null;
@@ -147,9 +185,9 @@ export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null>
 };
 
 // Añadir un nuevo equipo
-export const addEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | null> => {
+export const createEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | null> => {
   try {
-    // Primero, insertar el equipo
+    // First, insert the equipo
     const { data: equipoData, error: equipoError } = await supabase
       .from('equipos')
       .insert([{
@@ -160,14 +198,14 @@ export const addEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | nu
         responsable: equipo.responsable,
         mac: equipo.mac,
         procesador: equipo.procesador,
-        memoriaRam: equipo.memoriaRam,
-        discoDuro: equipo.discoDuro,
-        tipoDisco: equipo.tipoDisco,
+        memoriaram: equipo.memoriaRam,  // Note DB column name
+        discoduro: equipo.discoDuro,    // Note DB column name
+        tipodisco: equipo.tipoDisco,    // Note DB column name
         activo: equipo.activo,
         marca: equipo.marca,
         referencia: equipo.referencia,
         serial: equipo.serial,
-        tipoEquipo: equipo.tipoEquipo,
+        tipoequipo: equipo.tipoEquipo,  // Note DB column name
         monitor: equipo.monitor
       }])
       .select()
@@ -190,9 +228,25 @@ export const addEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | nu
       if (monitorError) throw monitorError;
     }
 
-    // Devolver el equipo insertado
+    // Devolver el equipo insertado con formato de nuestra interfaz
     return {
-      ...equipoData,
+      id: equipoData.id,
+      hostname: equipoData.hostname,
+      ip: equipoData.ip || '',
+      sede: equipoData.sede || '',
+      area: equipoData.area || '',
+      responsable: equipoData.responsable || '',
+      mac: equipoData.mac || '',
+      procesador: equipoData.procesador || '',
+      memoriaRam: equipoData.memoriaram || '',
+      discoDuro: equipoData.discoduro || '',
+      tipoDisco: equipoData.tipodisco || '',
+      activo: equipoData.activo || '',
+      marca: equipoData.marca || '',
+      referencia: equipoData.referencia || '',
+      serial: equipoData.serial || '',
+      tipoEquipo: equipoData.tipoequipo || '',
+      monitor: equipoData.monitor || false,
       monitorInfo: equipo.monitor && equipo.monitorInfo ? equipo.monitorInfo : undefined
     };
   } catch (error) {
@@ -201,16 +255,41 @@ export const addEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | nu
   }
 };
 
+// Alias para compatibilidad con el hook existente
+export const addEquipo = createEquipo;
+
 // Actualizar un equipo existente
 export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Promise<Equipo | null> => {
   try {
     const monitorInfo = equipoData.monitorInfo;
-    delete equipoData.monitorInfo;
+    const dataToUpdate: any = { ...equipoData };
+    delete dataToUpdate.monitorInfo;
+    
+    // Map properties to DB column names
+    if (dataToUpdate.memoriaRam !== undefined) {
+      dataToUpdate.memoriaram = dataToUpdate.memoriaRam;
+      delete dataToUpdate.memoriaRam;
+    }
+    
+    if (dataToUpdate.discoDuro !== undefined) {
+      dataToUpdate.discoduro = dataToUpdate.discoDuro;
+      delete dataToUpdate.discoDuro;
+    }
+    
+    if (dataToUpdate.tipoDisco !== undefined) {
+      dataToUpdate.tipodisco = dataToUpdate.tipoDisco;
+      delete dataToUpdate.tipoDisco;
+    }
+    
+    if (dataToUpdate.tipoEquipo !== undefined) {
+      dataToUpdate.tipoequipo = dataToUpdate.tipoEquipo;
+      delete dataToUpdate.tipoEquipo;
+    }
 
     // Actualizar el equipo
     const { data, error: equipoError } = await supabase
       .from('equipos')
-      .update(equipoData)
+      .update(dataToUpdate)
       .eq('id', id)
       .select()
       .single();
@@ -267,6 +346,25 @@ export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Pro
   } catch (error) {
     console.error('Error al actualizar equipo:', error);
     return null;
+  }
+};
+
+// Alias para compatibilidad
+export const editEquipo = updateEquipo;
+
+// Eliminar un equipo
+export const deleteEquipo = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('equipos')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error al eliminar equipo:', error);
+    return false;
   }
 };
 

@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { DataChart } from '@/components/data-chart';
 import { useChartData } from '@/hooks/useChartData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChartDataPoint } from '@/services/equipmentService';
 
 interface HistoryChartProps {
   selectedSede?: string;
@@ -97,7 +98,7 @@ export const HistoryChart: React.FC<HistoryChartProps> = ({
       </div>
       
       <DataChart 
-        data={filteredChartData} 
+        data={filteredChartData as any[]} 
         lines={[
           { dataKey: 'desktop', stroke: '#0A84FF', name: 'Desktop' },
           { dataKey: 'laptop', stroke: '#30D158', name: 'Laptop' },

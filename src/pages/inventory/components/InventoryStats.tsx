@@ -64,6 +64,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
   // Obtener la fecha del último equipo registrado
   const lastCreatedAtISODate = filteredEquipos.length > 0 
     ? new Date(Math.max(...filteredEquipos.map(e => {
+        // Handle null/undefined created_at safely
         const date = e.created_at ? new Date(e.created_at).getTime() : Date.now();
         return date;
       })))
