@@ -1,7 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Equipo, MonitorInfo } from '@/services/equipmentService';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Equipo } from '@/services/equipmentService';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AddEquipmentFormProps {
   open: boolean;
@@ -9,7 +21,7 @@ interface AddEquipmentFormProps {
   newEquipo: Partial<Equipo>;
   setNewEquipo: (equipo: Partial<Equipo>) => void;
   onSubmit: (equipo: Partial<Equipo>) => void;
-  isEdit: boolean;
+  isEdit?: boolean;
 }
 
 export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
@@ -18,338 +30,257 @@ export const AddEquipmentForm: React.FC<AddEquipmentFormProps> = ({
   newEquipo,
   setNewEquipo,
   onSubmit,
-  isEdit
+  isEdit = false
 }) => {
+  const isMobile = useIsMobile();
   
-  // Manejar cambios en los campos de texto y selección
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewEquipo({
       ...newEquipo,
       [name]: value
     });
   };
-
-  // Manejar cambios en el checkbox
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setNewEquipo({
-      ...newEquipo,
-      [name]: checked,
-      ...(name === 'monitor' && !checked ? { monitorInfo: undefined } : {})
-    });
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(newEquipo);
   };
-
-  // Manejar cambios en los campos del monitor
-  const handleMonitorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setNewEquipo({
-      ...newEquipo,
-      monitorInfo: {
-        ...newEquipo.monitorInfo || {},
-        [name]: value
-      } as MonitorInfo
-    });
-  };
-
-  // Inicializar monitorInfo si no existe y monitor es true
-  useEffect(() => {
-    if (newEquipo.monitor && !newEquipo.monitorInfo) {
-      setNewEquipo({
-        ...newEquipo,
-        monitorInfo: {
-          marca: '',
-          activo: '',
-          serial: '',
-          estado: 'Operativo'
-        }
-      });
-    }
-  }, [newEquipo.monitor]);
-
-  const handleSubmit = () => {
-    // Ensure monitorInfo is complete if monitor is true
-    if (newEquipo.monitor && newEquipo.monitorInfo) {
-      // Make sure all required fields are set
-      const updatedMonitorInfo: MonitorInfo = {
-        id: newEquipo.monitorInfo.id,
-        marca: newEquipo.monitorInfo.marca || '',
-        activo: newEquipo.monitorInfo.activo || '',
-        serial: newEquipo.monitorInfo.serial || '',
-        estado: newEquipo.monitorInfo.estado || 'Operativo'
-      };
-      
-      onSubmit({
-        ...newEquipo,
-        monitorInfo: updatedMonitorInfo
-      });
-    } else {
-      onSubmit(newEquipo);
-    }
-  };
-
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className={`${isMobile ? 'w-[95vw] max-w-lg' : 'max-w-2xl'} max-h-[90vh] p-0`}>
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>{isEdit ? 'Editar Equipo' : 'Añadir Nuevo Equipo'}</DialogTitle>
-          <DialogDescription>
-            Complete la información del equipo a {isEdit ? 'actualizar' : 'registrar'} en el inventario.
-          </DialogDescription>
         </DialogHeader>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Hostname</label>
-            <input 
-              type="text" 
-              name="hostname"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.hostname || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">IP</label>
-            <input 
-              type="text" 
-              name="ip"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.ip || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Sede</label>
-            <select 
-              name="sede"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.sede || ''}
-              onChange={handleChange}
-            >
-              <option value="">Seleccionar</option>
-              <option value="Paquetería Express">Paquetería Express</option>
-              <option value="Sede Principal">Sede Principal</option>
-              <option value="Bodega Norte">Bodega Norte</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Área</label>
-            <select 
-              name="area"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.area || ''}
-              onChange={handleChange}
-            >
-              <option value="">Seleccionar</option>
-              <option value="Tecnología">Tecnología</option>
-              <option value="Administración">Administración</option>
-              <option value="Operaciones">Operaciones</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Responsable</label>
-            <input 
-              type="text" 
-              name="responsable"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.responsable || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">MAC</label>
-            <input 
-              type="text" 
-              name="mac"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.mac || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tipo de Equipo</label>
-            <select 
-              name="tipoEquipo"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.tipoEquipo || ''}
-              onChange={handleChange}
-            >
-              <option value="">Seleccionar</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Desktop">Desktop</option>
-              <option value="Servidor">Servidor</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Marca</label>
-            <input 
-              type="text" 
-              name="marca"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.marca || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Referencia</label>
-            <input 
-              type="text" 
-              name="referencia"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.referencia || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Serial</label>
-            <input 
-              type="text" 
-              name="serial"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.serial || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Activo</label>
-            <input 
-              type="text" 
-              name="activo"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.activo || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Procesador</label>
-            <input 
-              type="text" 
-              name="procesador"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.procesador || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Memoria RAM</label>
-            <input 
-              type="text" 
-              name="memoriaRam"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.memoriaRam || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Disco Duro</label>
-            <input 
-              type="text" 
-              name="discoDuro"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.discoDuro || ''}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tipo Disco</label>
-            <select 
-              name="tipoDisco"
-              className="w-full px-3 py-2 border rounded-md"
-              value={newEquipo.tipoDisco || ''}
-              onChange={handleChange}
-            >
-              <option value="">Seleccionar</option>
-              <option value="SSD">SSD</option>
-              <option value="HDD">HDD</option>
-            </select>
-          </div>
-
-          <div className="space-y-2 col-span-2">
-            <label className="flex items-center space-x-2">
-              <input 
-                type="checkbox"
-                name="monitor"
-                checked={newEquipo.monitor || false}
-                onChange={handleCheckboxChange}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm font-medium">¿Tiene monitor?</span>
-            </label>
-          </div>
-
-          {newEquipo.monitor && (
-            <div className="col-span-2">
-              <div className="border rounded-md p-4 mt-2">
-                <div className="text-sm font-medium mb-3">Información del Monitor</div>
+        
+        <ScrollArea className="max-h-[calc(90vh-140px)]">
+          <form onSubmit={handleSubmit} className="px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="hostname">Hostname</Label>
+                <Input 
+                  id="hostname" 
+                  name="hostname" 
+                  value={newEquipo.hostname || ''} 
+                  onChange={handleChange} 
+                  placeholder="Nombre del equipo"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="ip">Dirección IP</Label>
+                <Input 
+                  id="ip" 
+                  name="ip" 
+                  value={newEquipo.ip || ''} 
+                  onChange={handleChange} 
+                  placeholder="192.168.1.1"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="sede">Sede</Label>
+                <Input 
+                  id="sede" 
+                  name="sede" 
+                  value={newEquipo.sede || ''} 
+                  onChange={handleChange} 
+                  placeholder="Sede del equipo"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="area">Área</Label>
+                <Input 
+                  id="area" 
+                  name="area" 
+                  value={newEquipo.area || ''} 
+                  onChange={handleChange} 
+                  placeholder="Área o departamento"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="responsable">Responsable</Label>
+                <Input 
+                  id="responsable" 
+                  name="responsable" 
+                  value={newEquipo.responsable || ''} 
+                  onChange={handleChange} 
+                  placeholder="Nombre del responsable"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="mac">Dirección MAC</Label>
+                <Input 
+                  id="mac" 
+                  name="mac" 
+                  value={newEquipo.mac || ''} 
+                  onChange={handleChange} 
+                  placeholder="00:00:00:00:00:00"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="procesador">Procesador</Label>
+                <Input 
+                  id="procesador" 
+                  name="procesador" 
+                  value={newEquipo.procesador || ''} 
+                  onChange={handleChange} 
+                  placeholder="Intel Core i5-10400"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="memoriaRam">Memoria RAM</Label>
+                <Input 
+                  id="memoriaRam" 
+                  name="memoriaRam" 
+                  value={newEquipo.memoriaRam || ''} 
+                  onChange={handleChange} 
+                  placeholder="8 GB"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="discoDuro">Disco Duro</Label>
+                <Input 
+                  id="discoDuro" 
+                  name="discoDuro" 
+                  value={newEquipo.discoDuro || ''} 
+                  onChange={handleChange} 
+                  placeholder="500 GB"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="tipoDisco">Tipo de Disco</Label>
+                <Input 
+                  id="tipoDisco" 
+                  name="tipoDisco" 
+                  value={newEquipo.tipoDisco || ''} 
+                  onChange={handleChange} 
+                  placeholder="SSD"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="activo">Activo Fijo</Label>
+                <Input 
+                  id="activo" 
+                  name="activo" 
+                  value={newEquipo.activo || ''} 
+                  onChange={handleChange} 
+                  placeholder="Número de activo fijo"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="marca">Marca</Label>
+                <Input 
+                  id="marca" 
+                  name="marca" 
+                  value={newEquipo.marca || ''} 
+                  onChange={handleChange} 
+                  placeholder="Dell, HP, Lenovo, etc."
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="referencia">Referencia</Label>
+                <Input 
+                  id="referencia" 
+                  name="referencia" 
+                  value={newEquipo.referencia || ''} 
+                  onChange={handleChange} 
+                  placeholder="Modelo o referencia"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="serial">Serial</Label>
+                <Input 
+                  id="serial" 
+                  name="serial" 
+                  value={newEquipo.serial || ''} 
+                  onChange={handleChange} 
+                  placeholder="Número de serie"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <Label htmlFor="tipoEquipo">Tipo de Equipo</Label>
+                <Input 
+                  id="tipoEquipo" 
+                  name="tipoEquipo" 
+                  value={newEquipo.tipoEquipo || ''} 
+                  onChange={handleChange} 
+                  placeholder="Desktop, Laptop, Servidor"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-6">
+                <Switch 
+                  id="monitor" 
+                  checked={newEquipo.monitor || false}
+                  onCheckedChange={(checked) => 
+                    setNewEquipo({ ...newEquipo, monitor: checked })
+                  }
+                />
+                <Label htmlFor="monitor">Incluye Monitor</Label>
+              </div>
+            </div>
+            
+            {newEquipo.monitor && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+                <h3 className="font-medium text-gray-900 mb-2">Información del Monitor</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Marca</label>
-                    <input 
-                      type="text" 
-                      name="marca"
-                      className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo?.marca || ''}
-                      onChange={handleMonitorChange}
+                  <div>
+                    <Label htmlFor="monitorMarca">Marca</Label>
+                    <Input 
+                      id="monitorMarca" 
+                      name="monitorMarca" 
+                      placeholder="Dell, HP, LG, etc." 
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Activo</label>
-                    <input 
-                      type="text" 
-                      name="activo"
-                      className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo?.activo || ''}
-                      onChange={handleMonitorChange}
+                  <div>
+                    <Label htmlFor="monitorActivo">Activo Fijo</Label>
+                    <Input 
+                      id="monitorActivo" 
+                      name="monitorActivo" 
+                      placeholder="Número de activo fijo" 
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Serial</label>
-                    <input 
-                      type="text" 
-                      name="serial"
-                      className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo?.serial || ''}
-                      onChange={handleMonitorChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Estado</label>
-                    <select 
-                      name="estado"
-                      className="w-full px-3 py-2 border rounded-md"
-                      value={newEquipo.monitorInfo?.estado || 'Operativo'}
-                      onChange={handleMonitorChange}
-                    >
-                      <option value="Operativo">Operativo</option>
-                      <option value="Dañado">Dañado</option>
-                      <option value="En reparación">En reparación</option>
-                    </select>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="submit" onClick={handleSubmit} className="bg-envio-red hover:bg-envio-red/90">
-            {isEdit ? 'Actualizar Equipo' : 'Guardar Equipo'}
+            )}
+          </form>
+        </ScrollArea>
+        
+        <DialogFooter className="px-6 py-4 border-t">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="button" onClick={handleSubmit}>
+            {isEdit ? 'Actualizar' : 'Guardar'}
           </Button>
         </DialogFooter>
       </DialogContent>

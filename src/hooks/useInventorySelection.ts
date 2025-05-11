@@ -1,10 +1,12 @@
 
 import { useState } from 'react';
 import { Equipo } from '@/services/equipmentService';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export const useInventorySelection = () => {
   const [selectedItems, setSelectedItems] = useState<Equipo[]>([]);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const isMobile = useIsMobile();
   
   // Seleccionar/deseleccionar ítem
   const toggleSelectItem = (item: Equipo) => {
@@ -12,6 +14,11 @@ export const useInventorySelection = () => {
       setSelectedItems(selectedItems.filter(selectedItem => selectedItem.id !== item.id));
     } else {
       setSelectedItems([...selectedItems, item]);
+      
+      // En móvil, al seleccionar un ítem, expandirlo automáticamente
+      if (isMobile && !expandedItems.includes(item.id)) {
+        setExpandedItems([...expandedItems, item.id]);
+      }
     }
   };
   
@@ -34,6 +41,7 @@ export const useInventorySelection = () => {
     expandedItems,
     toggleSelectItem,
     toggleExpandItem,
-    clearSelection
+    clearSelection,
+    isMobile
   };
 };

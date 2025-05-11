@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Monitor, 
   Smartphone, 
@@ -14,15 +15,17 @@ import {
 import { cn } from "@/lib/utils";
 
 const menuItems = [
-  { icon: Monitor, label: "Equipos", isActive: true },
-  { icon: Smartphone, label: "Móviles" },
-  { icon: Printer, label: "Impresoras" },
-  { icon: Settings, label: "Configuración" },
-  { icon: User, label: "Usuarios" }
+  { icon: Monitor, label: "Equipos", path: "/" },
+  { icon: Smartphone, label: "Móviles", path: "/moviles" },
+  { icon: Printer, label: "Impresoras", path: "/impresoras" },
+  { icon: BarChart2, label: "Reportes", path: "/reportes" },
+  { icon: User, label: "Usuarios", path: "/usuarios" },
+  { icon: Settings, label: "Configuración", path: "/configuracion" }
 ];
 
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
 
   return (
     <div 
@@ -39,7 +42,7 @@ export function AppSidebar() {
           </div>
         ) : (
           <img 
-            src="public/lovable-uploads/028914a5-7d44-4928-83e2-2f46905306f7.png" 
+            src="/lovable-uploads/028914a5-7d44-4928-83e2-2f46905306f7.png" 
             alt="Envía Logo" 
             className="h-8" 
             style={{ objectFit: 'contain' }}
@@ -50,19 +53,19 @@ export function AppSidebar() {
       {/* Menu Items */}
       <div className="flex-1 py-8">
         <ul className="space-y-2">
-          {menuItems.map((item, index) => (
-            <li key={index}>
-              <a 
-                href="#" 
+          {menuItems.map((item) => (
+            <li key={item.label}>
+              <Link 
+                to={item.path}
                 className={cn(
                   "flex items-center px-4 py-3 text-envio-gray-600",
                   "hover:bg-envio-gray-100 transition-colors duration-150",
-                  item.isActive && "text-envio-red border-r-4 border-envio-red bg-envio-red/5"
+                  location.pathname === item.path && "text-envio-red border-r-4 border-envio-red bg-envio-red/5"
                 )}
               >
                 <item.icon className={cn("h-5 w-5", !isCollapsed && "mr-3")} />
                 {!isCollapsed && <span>{item.label}</span>}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

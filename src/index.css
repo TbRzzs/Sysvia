@@ -108,3 +108,37 @@
     display: none;
   }
 }
+
+/* CSS específico para hacer scrollables las tablas en mobile */
+.mobile-table-container {
+  @apply w-full overflow-x-auto -mx-4 px-4;
+}
+
+.mobile-table-container table {
+  @apply min-w-full;
+}
+
+/* Clases responsivas adicionales */
+@media (max-width: 640px) {
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  .mobile-stack {
+    @apply flex-col;
+  }
+  
+  .mobile-mb-4 {
+    @apply mb-4;
+  }
+}
+
+/* Mejora visual para modales scrollables */
+.scrollable-dialog-content {
+  @apply overflow-hidden flex flex-col max-h-[90vh];
+}
+
+.scrollable-dialog-body {
+  @apply flex-1 overflow-auto p-6;
+}
