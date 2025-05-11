@@ -27,7 +27,10 @@ export const InventoryStats: React.FC = () => {
   
   // Obtener la fecha del último equipo registrado
   const lastCreatedAtISODate = equipos.length > 0 
-    ? new Date(Math.max(...equipos.map(e => new Date(e.created_at || Date.now()).getTime())))
+    ? new Date(Math.max(...equipos.map(e => {
+        const date = e.created_at ? new Date(e.created_at).getTime() : Date.now();
+        return date;
+      })))
     : new Date();
   
   const lastCreatedAt = lastCreatedAtISODate.toLocaleDateString('es-ES', { 

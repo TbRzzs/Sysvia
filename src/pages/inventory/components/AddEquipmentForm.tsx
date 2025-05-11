@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Equipo } from '@/services/equipmentService';
+import { Equipo, MonitorInfo } from '@/services/equipmentService';
 
 interface AddEquipmentFormProps {
   open: boolean;
