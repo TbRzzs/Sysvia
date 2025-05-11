@@ -24,7 +24,7 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const location = useLocation();
 
   return (
@@ -34,7 +34,6 @@ export function AppSidebar() {
         isCollapsed ? "w-[70px]" : "w-[240px]"
       )}
     >
-      {/* Logo */}
       <div className="p-4 flex items-center justify-center border-b">
         {isCollapsed ? (
           <div className="p-1 flex justify-center">
@@ -50,7 +49,6 @@ export function AppSidebar() {
         )}
       </div>
 
-      {/* Menu Items */}
       <div className="flex-1 py-8">
         <ul className="space-y-2">
           {menuItems.map((item) => (
@@ -71,7 +69,6 @@ export function AppSidebar() {
         </ul>
       </div>
 
-      {/* User Profile */}
       <div className={cn(
         "p-4 border-t flex items-center",
         isCollapsed ? "justify-center" : "justify-between"
