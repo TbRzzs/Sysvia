@@ -1,12 +1,48 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StatCard } from '@/components/stat-card';
 import { Laptop, Smartphone, MonitorDown, Router, Calendar } from 'lucide-react';
 import { useEquipment } from '@/hooks/useEquipment';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const InventoryStats: React.FC = () => {
+interface InventoryStatsProps {
+  selectedSede?: string;
+  selectedArea?: string;
+  searchQuery?: string;
+}
+
+export const InventoryStats: React.FC<InventoryStatsProps> = ({ 
+  selectedSede = "Todos", 
+  selectedArea = "Todos",
+  searchQuery = ""
+}) => {
   const { equipos, loading } = useEquipment();
+  
+  // Filtramos los equipos según los criterios seleccionados
+  const filteredEquipos = useMemo(() => {
+    if (!equipos.length) return [];
+    
+    return equipos.filter(equipo => {
+      // Filtrar por búsqueda
+      const matchesSearch = searchQuery 
+        ? equipo.hostname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          equipo.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (equipo.responsable && equipo.responsable.toLowerCase().includes(searchQuery.toLowerCase()))
+        : true;
+        
+      // Filtrar por sede
+      const matchesSede = selectedSede === "Todos" 
+        ? true 
+        : equipo.sede === selectedSede;
+        
+      // Filtrar por área
+      const matchesArea = selectedArea === "Todos" 
+        ? true 
+        : equipo.area === selectedArea;
+        
+      return matchesSearch && matchesSede && matchesArea;
+    });
+  }, [equipos, selectedSede, selectedArea, searchQuery]);
   
   if (loading) {
     return (
@@ -19,15 +55,15 @@ export const InventoryStats: React.FC = () => {
     );
   }
   
-  // Calcular estadísticas a partir de los datos reales
-  const totalEquipos = equipos.length;
-  const dispositivosMoviles = equipos.filter(e => e.tipoEquipo === 'Laptop').length;
-  const servidores = equipos.filter(e => e.tipoEquipo === 'Servidor').length;
-  const desktops = equipos.filter(e => e.tipoEquipo === 'Desktop').length;
+  // Calcular estadísticas a partir de los datos filtrados
+  const totalEquipos = filteredEquipos.length;
+  const dispositivosMoviles = filteredEquipos.filter(e => e.tipoEquipo === 'Laptop').length;
+  const servidores = filteredEquipos.filter(e => e.tipoEquipo === 'Servidor').length;
+  const desktops = filteredEquipos.filter(e => e.tipoEquipo === 'Desktop').length;
   
   // Obtener la fecha del último equipo registrado
-  const lastCreatedAtISODate = equipos.length > 0 
-    ? new Date(Math.max(...equipos.map(e => {
+  const lastCreatedAtISODate = filteredEquipos.length > 0 
+    ? new Date(Math.max(...filteredEquipos.map(e => {
         const date = e.created_at ? new Date(e.created_at).getTime() : Date.now();
         return date;
       })))

@@ -1,5 +1,21 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+
+// Tipos
+export interface ChartDataPoint {
+  name: string;
+  desktop: number;
+  laptop: number;
+  servidor: number;
+}
+
+export interface MonitorInfo {
+  id?: string;
+  marca: string;
+  activo: string;
+  serial: string;
+  estado: string;
+}
 
 export interface Equipo {
   id: string;
@@ -24,369 +40,297 @@ export interface Equipo {
   updated_at?: string;
 }
 
-export interface MonitorInfo {
-  id?: string;
-  marca: string;
-  activo: string;
-  serial: string;
-  estado: string;
-}
+// Obtener datos para el gráfico
+export const getChartData = async (): Promise<ChartDataPoint[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('estadisticas_mensuales')
+      .select('*')
+      .order('id');
 
-export interface ChartDataPoint {
-  name: string;
-  desktop: number;
-  laptop: number;
-  servidor: number;
-}
+    if (error) throw error;
+    
+    return data as ChartDataPoint[];
+  } catch (error) {
+    console.error('Error al obtener datos del gráfico:', error);
+    return [];
+  }
+};
 
 // Obtener todos los equipos
-export const getEquipos = async (): Promise<Equipo[]> => {
-  const { data, error } = await supabase
-    .from('equipos')
-    .select('*');
+export const fetchEquipos = async (): Promise<Equipo[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('equipos')
+      .select('*')
+      .order('hostname');
+      
+    if (error) throw error;
 
-  if (error) {
-    console.error('Error fetching equipos:', error);
-    throw error;
-  }
+    const equipos = await Promise.all(
+      data.map(async (equipo) => {
+        if (equipo.monitor) {
+          const { data: monitorData } = await supabase
+            .from('monitores')
+            .select('*')
+            .eq('equipo_id', equipo.id)
+            .single();
 
-  // Mapeamos los campos de la base de datos a nuestra interfaz
-  const equiposTransformed = await Promise.all(
-    data.map(async (equipo) => {
-      const transformedEquipo: Equipo = {
-        id: equipo.id,
-        hostname: equipo.hostname,
-        ip: equipo.ip || "",
-        sede: equipo.sede || "",
-        area: equipo.area || "",
-        responsable: equipo.responsable || "",
-        mac: equipo.mac || "",
-        procesador: equipo.procesador || "",
-        memoriaRam: equipo.memoriaram || "",
-        discoDuro: equipo.discoduro || "",
-        tipoDisco: equipo.tipodisco || "",
-        activo: equipo.activo || "",
-        marca: equipo.marca || "",
-        referencia: equipo.referencia || "",
-        serial: equipo.serial || "",
-        tipoEquipo: equipo.tipoequipo || "",
-        monitor: equipo.monitor || false,
-        created_at: equipo.created_at,
-        updated_at: equipo.updated_at,
-      };
-
-      // Obtener monitor si existe
-      if (equipo.monitor) {
-        const { data: monitorData, error: monitorError } = await supabase
-          .from('monitores')
-          .select('*')
-          .eq('equipo_id', equipo.id)
-          .single();
-
-        if (monitorError && monitorError.code !== 'PGRST116') {
-          console.error('Error fetching monitor:', monitorError);
-        }
-
-        if (monitorData) {
-          transformedEquipo.monitorInfo = {
-            id: monitorData.id,
-            marca: monitorData.marca || "",
-            activo: monitorData.activo || "",
-            serial: monitorData.serial || "",
-            estado: monitorData.estado || ""
+          return { 
+            ...equipo, 
+            monitorInfo: monitorData || undefined
           };
         }
+        return equipo;
+      })
+    );
+    
+    return equipos as Equipo[];
+  } catch (error) {
+    console.error('Error al obtener equipos:', error);
+    return [];
+  }
+};
+
+// Obtener un equipo con sus detalles
+export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null> => {
+  try {
+    const { data, error } = await supabase
+      .rpc('obtener_equipo_con_monitor', { equipo_id: id });
+
+    if (error) throw error;
+    if (!data) return null;
+    
+    // Debemos transformar el resultado JSON a un objeto Equipo
+    if (typeof data === 'object') {
+      const equipo = {
+        id: data.id as string,
+        hostname: data.hostname as string,
+        ip: data.ip as string,
+        sede: data.sede as string,
+        area: data.area as string,
+        responsable: data.responsable as string,
+        mac: data.mac as string,
+        procesador: data.procesador as string,
+        memoriaRam: data.memoriaRam as string,
+        discoDuro: data.discoDuro as string,
+        tipoDisco: data.tipoDisco as string,
+        activo: data.activo as string,
+        marca: data.marca as string,
+        referencia: data.referencia as string,
+        serial: data.serial as string,
+        tipoEquipo: data.tipoEquipo as string,
+        monitor: data.monitor as boolean,
+        created_at: data.created_at as string,
+        updated_at: data.updated_at as string
+      } as Equipo;
+      
+      // Añadir monitor si existe
+      if (data.monitorInfo && typeof data.monitorInfo === 'object') {
+        equipo.monitorInfo = {
+          id: data.monitorInfo.id as string,
+          marca: data.monitorInfo.marca as string,
+          activo: data.monitorInfo.activo as string,
+          serial: data.monitorInfo.serial as string,
+          estado: data.monitorInfo.estado as string
+        };
       }
-
-      return transformedEquipo;
-    })
-  );
-
-  return equiposTransformed;
+      
+      return equipo;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error al obtener equipo con detalles:', error);
+    return null;
+  }
 };
 
-// Obtener un equipo por ID
-export const getEquipoById = async (id: string): Promise<Equipo | null> => {
-  const { data, error } = await supabase
-    .rpc('obtener_equipo_con_monitor', { equipo_id: id });
-
-  if (error) {
-    console.error('Error fetching equipo by ID:', error);
-    throw error;
-  }
-
-  if (!data) return null;
-
-  // Transformar los datos al formato que espera nuestra interfaz
-  const equipo: Equipo = {
-    id: data.id,
-    hostname: data.hostname,
-    ip: data.ip || "",
-    sede: data.sede || "",
-    area: data.area || "",
-    responsable: data.responsable || "",
-    mac: data.mac || "",
-    procesador: data.procesador || "",
-    memoriaRam: data.memoriaRam || "",
-    discoDuro: data.discoDuro || "",
-    tipoDisco: data.tipoDisco || "",
-    activo: data.activo || "",
-    marca: data.marca || "",
-    referencia: data.referencia || "",
-    serial: data.serial || "",
-    tipoEquipo: data.tipoEquipo || "",
-    monitor: data.monitor || false,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-  };
-
-  if (data.monitorInfo) {
-    equipo.monitorInfo = {
-      id: data.monitorInfo.id,
-      marca: data.monitorInfo.marca || "",
-      activo: data.monitorInfo.activo || "",
-      serial: data.monitorInfo.serial || "",
-      estado: data.monitorInfo.estado || ""
-    };
-  }
-
-  return equipo;
-};
-
-// Crear un nuevo equipo
-export const createEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo> => {
-  // Extraer la información del monitor para insertarla por separado
-  const { monitorInfo, ...equipoData } = equipo;
-  
-  // Mapear los datos al formato de la tabla en Supabase
-  const supabaseEquipo = {
-    hostname: equipoData.hostname,
-    ip: equipoData.ip,
-    sede: equipoData.sede,
-    area: equipoData.area,
-    responsable: equipoData.responsable,
-    mac: equipoData.mac,
-    procesador: equipoData.procesador,
-    memoriaram: equipoData.memoriaRam,
-    discoduro: equipoData.discoDuro,
-    tipodisco: equipoData.tipoDisco,
-    activo: equipoData.activo,
-    marca: equipoData.marca,
-    referencia: equipoData.referencia,
-    serial: equipoData.serial,
-    tipoequipo: equipoData.tipoEquipo,
-    monitor: equipoData.monitor
-  };
-  
-  // Insertar el equipo primero
-  const { data, error } = await supabase
-    .from('equipos')
-    .insert(supabaseEquipo)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating equipo:', error);
-    throw error;
-  }
-
-  const createdEquipo: Equipo = {
-    id: data.id,
-    hostname: data.hostname,
-    ip: data.ip || "",
-    sede: data.sede || "",
-    area: data.area || "",
-    responsable: data.responsable || "",
-    mac: data.mac || "",
-    procesador: data.procesador || "",
-    memoriaRam: data.memoriaram || "",
-    discoDuro: data.discoduro || "",
-    tipoDisco: data.tipodisco || "",
-    activo: data.activo || "",
-    marca: data.marca || "",
-    referencia: data.referencia || "",
-    serial: data.serial || "",
-    tipoEquipo: data.tipoequipo || "",
-    monitor: data.monitor || false,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-  };
-
-  // Si tiene monitor, insertar la información del monitor
-  if (equipo.monitor && monitorInfo) {
-    const supabaseMonitor = {
-      equipo_id: data.id,
-      marca: monitorInfo.marca,
-      activo: monitorInfo.activo,
-      serial: monitorInfo.serial,
-      estado: monitorInfo.estado
-    };
-
-    const { data: monitorData, error: monitorError } = await supabase
-      .from('monitores')
-      .insert(supabaseMonitor)
+// Añadir un nuevo equipo
+export const addEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | null> => {
+  try {
+    // Primero, insertar el equipo
+    const { data: equipoData, error: equipoError } = await supabase
+      .from('equipos')
+      .insert([{
+        hostname: equipo.hostname,
+        ip: equipo.ip,
+        sede: equipo.sede,
+        area: equipo.area,
+        responsable: equipo.responsable,
+        mac: equipo.mac,
+        procesador: equipo.procesador,
+        memoriaRam: equipo.memoriaRam,
+        discoDuro: equipo.discoDuro,
+        tipoDisco: equipo.tipoDisco,
+        activo: equipo.activo,
+        marca: equipo.marca,
+        referencia: equipo.referencia,
+        serial: equipo.serial,
+        tipoEquipo: equipo.tipoEquipo,
+        monitor: equipo.monitor
+      }])
       .select()
       .single();
 
-    if (monitorError) {
-      console.error('Error creating monitor:', monitorError);
-      // No lanzamos el error para no interrumpir el flujo, pero lo registramos
-    } else {
-      createdEquipo.monitorInfo = {
-        id: monitorData.id,
-        marca: monitorData.marca || "",
-        activo: monitorData.activo || "",
-        serial: monitorData.serial || "",
-        estado: monitorData.estado || ""
-      };
-    }
-  }
+    if (equipoError) throw equipoError;
+    
+    // Si tiene monitor, insertar el monitor asociado
+    if (equipo.monitor && equipo.monitorInfo) {
+      const { error: monitorError } = await supabase
+        .from('monitores')
+        .insert([{
+          equipo_id: equipoData.id,
+          marca: equipo.monitorInfo.marca,
+          activo: equipo.monitorInfo.activo,
+          serial: equipo.monitorInfo.serial,
+          estado: equipo.monitorInfo.estado
+        }]);
 
-  return createdEquipo;
+      if (monitorError) throw monitorError;
+    }
+
+    // Devolver el equipo insertado
+    return {
+      ...equipoData,
+      monitorInfo: equipo.monitor && equipo.monitorInfo ? equipo.monitorInfo : undefined
+    };
+  } catch (error) {
+    console.error('Error al añadir equipo:', error);
+    return null;
+  }
 };
 
 // Actualizar un equipo existente
-export const updateEquipo = async (id: string, equipo: Partial<Equipo>): Promise<void> => {
-  const { monitorInfo, ...equipoData } = equipo;
-  
-  // Mapear los datos al formato de la tabla en Supabase
-  const supabaseEquipo: Record<string, any> = {};
-  
-  if (equipoData.hostname !== undefined) supabaseEquipo.hostname = equipoData.hostname;
-  if (equipoData.ip !== undefined) supabaseEquipo.ip = equipoData.ip;
-  if (equipoData.sede !== undefined) supabaseEquipo.sede = equipoData.sede;
-  if (equipoData.area !== undefined) supabaseEquipo.area = equipoData.area;
-  if (equipoData.responsable !== undefined) supabaseEquipo.responsable = equipoData.responsable;
-  if (equipoData.mac !== undefined) supabaseEquipo.mac = equipoData.mac;
-  if (equipoData.procesador !== undefined) supabaseEquipo.procesador = equipoData.procesador;
-  if (equipoData.memoriaRam !== undefined) supabaseEquipo.memoriaram = equipoData.memoriaRam;
-  if (equipoData.discoDuro !== undefined) supabaseEquipo.discoduro = equipoData.discoDuro;
-  if (equipoData.tipoDisco !== undefined) supabaseEquipo.tipodisco = equipoData.tipoDisco;
-  if (equipoData.activo !== undefined) supabaseEquipo.activo = equipoData.activo;
-  if (equipoData.marca !== undefined) supabaseEquipo.marca = equipoData.marca;
-  if (equipoData.referencia !== undefined) supabaseEquipo.referencia = equipoData.referencia;
-  if (equipoData.serial !== undefined) supabaseEquipo.serial = equipoData.serial;
-  if (equipoData.tipoEquipo !== undefined) supabaseEquipo.tipoequipo = equipoData.tipoEquipo;
-  if (equipoData.monitor !== undefined) supabaseEquipo.monitor = equipoData.monitor;
-  
-  // Actualizar el equipo
-  const { error } = await supabase
-    .from('equipos')
-    .update(supabaseEquipo)
-    .eq('id', id);
+export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Promise<Equipo | null> => {
+  try {
+    const monitorInfo = equipoData.monitorInfo;
+    delete equipoData.monitorInfo;
 
-  if (error) {
-    console.error('Error updating equipo:', error);
-    throw error;
-  }
-
-  // Si tiene monitor, actualizar la información del monitor
-  if (equipo.monitor !== false && monitorInfo) {
-    const supabaseMonitor = {
-      marca: monitorInfo.marca,
-      activo: monitorInfo.activo,
-      serial: monitorInfo.serial,
-      estado: monitorInfo.estado
-    };
-
-    // Intentamos hacer un update primero
-    const { error: updateError } = await supabase
-      .from('monitores')
-      .update(supabaseMonitor)
-      .eq('equipo_id', id);
-
-    if (updateError) {
-      console.error('Error updating monitor:', updateError);
+    // Actualizar el equipo
+    const { data, error: equipoError } = await supabase
+      .from('equipos')
+      .update(equipoData)
+      .eq('id', id)
+      .select()
+      .single();
       
-      // Si no existe, lo creamos
-      const { error: insertError } = await supabase
+    if (equipoError) throw equipoError;
+
+    // Si tiene monitor, actualizar o insertar el monitor asociado
+    if (equipoData.monitor && monitorInfo) {
+      const { data: existingMonitor } = await supabase
         .from('monitores')
-        .insert({
-          equipo_id: id,
-          ...supabaseMonitor
-        });
+        .select('*')
+        .eq('equipo_id', id)
+        .maybeSingle();
 
-      if (insertError) {
-        console.error('Error inserting monitor after update failure:', insertError);
+      if (existingMonitor) {
+        // Actualizar monitor existente
+        const { error: monitorError } = await supabase
+          .from('monitores')
+          .update({
+            marca: monitorInfo.marca,
+            activo: monitorInfo.activo,
+            serial: monitorInfo.serial,
+            estado: monitorInfo.estado
+          })
+          .eq('equipo_id', id);
+
+        if (monitorError) throw monitorError;
+      } else {
+        // Insertar nuevo monitor
+        const { error: monitorError } = await supabase
+          .from('monitores')
+          .insert([{
+            equipo_id: id,
+            marca: monitorInfo.marca,
+            activo: monitorInfo.activo,
+            serial: monitorInfo.serial,
+            estado: monitorInfo.estado
+          }]);
+
+        if (monitorError) throw monitorError;
       }
+    } else if (!equipoData.monitor) {
+      // Si ya no tiene monitor, eliminar el monitor asociado
+      const { error: monitorDeleteError } = await supabase
+        .from('monitores')
+        .delete()
+        .eq('equipo_id', id);
+
+      if (monitorDeleteError) throw monitorDeleteError;
     }
-  } else if (equipo.monitor === false) {
-    // Si se marca como que no tiene monitor, eliminamos cualquier monitor asociado
-    const { error: deleteError } = await supabase
-      .from('monitores')
+
+    // Devolver el equipo actualizado con monitor si existe
+    return await fetchEquipoConDetalles(id);
+  } catch (error) {
+    console.error('Error al actualizar equipo:', error);
+    return null;
+  }
+};
+
+// Eliminar equipos seleccionados
+export const deleteEquipos = async (ids: string[]): Promise<boolean> => {
+  try {
+    // Eliminar los equipos seleccionados
+    const { error } = await supabase
+      .from('equipos')
       .delete()
-      .eq('equipo_id', id);
+      .in('id', ids);
 
-    if (deleteError) {
-      console.error('Error deleting monitor:', deleteError);
-    }
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error al eliminar equipos:', error);
+    return false;
   }
 };
 
-// Eliminar un equipo
-export const deleteEquipo = async (id: string): Promise<void> => {
-  const { error } = await supabase
-    .from('equipos')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('Error deleting equipo:', error);
-    throw error;
-  }
-  // No es necesario eliminar el monitor, se eliminará en cascada
-};
-
-// Eliminar múltiples equipos
-export const deleteEquipos = async (ids: string[]): Promise<void> => {
-  const { error } = await supabase
-    .from('equipos')
-    .delete()
-    .in('id', ids);
-
-  if (error) {
-    console.error('Error deleting equipos:', error);
-    throw error;
-  }
-};
-
-// Obtener datos para el gráfico
-export const getChartData = async (): Promise<ChartDataPoint[]> => {
-  const { data, error } = await supabase
-    .from('estadisticas_mensuales')
-    .select('*')
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching chart data:', error);
-    throw error;
-  }
-
-  return data.map(item => ({
-    name: item.mes,
-    desktop: item.desktop || 0,
-    laptop: item.laptop || 0,
-    servidor: item.servidor || 0
-  }));
-};
-
-// Exportar inventario (simulado por ahora)
+// Exportar inventario
 export const exportInventory = async (format: 'xlsx' | 'csv' | 'pdf'): Promise<Blob> => {
-  // Esta función simula la exportación
-  // En un caso real, se usaría una librería para generar archivos
-  
-  // Obtener todos los equipos para exportar
-  const equipos = await getEquipos();
-  
-  // Simulamos la descarga de un archivo
-  return new Blob([JSON.stringify(equipos)], { type: 'application/json' });
+  try {
+    // Obtener todos los equipos
+    const equipos = await fetchEquipos();
+    
+    // Crear un archivo blob según el formato
+    let blob: Blob;
+    
+    if (format === 'csv') {
+      // Crear CSV
+      const headers = 'Hostname,IP,Sede,Area,Responsable,MAC,Procesador,MemoriaRam,DiscoDuro,TipoDisco,Activo,Marca,Referencia,Serial,TipoEquipo,Monitor\n';
+      const rows = equipos.map(e => 
+        `${e.hostname},${e.ip},${e.sede},${e.area},${e.responsable},${e.mac},${e.procesador},${e.memoriaRam},${e.discoDuro},${e.tipoDisco},${e.activo},${e.marca},${e.referencia},${e.serial},${e.tipoEquipo},${e.monitor}`
+      ).join('\n');
+      
+      blob = new Blob([headers + rows], { type: 'text/csv' });
+    } else if (format === 'xlsx') {
+      // Simulación de XLSX (en una app real, usaríamos una librería como ExcelJS)
+      blob = new Blob(['Simulación de archivo XLSX'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    } else {
+      // Simulación de PDF (en una app real, usaríamos una librería como pdfmake)
+      blob = new Blob(['Simulación de archivo PDF'], { type: 'application/pdf' });
+    }
+    
+    return blob;
+  } catch (error) {
+    console.error('Error al exportar inventario:', error);
+    throw error;
+  }
 };
 
-// Importar inventario (simulado por ahora)
-export const importInventory = async (file: File): Promise<void> => {
-  // Esta función simula la importación
-  // En un caso real, se parsearía el archivo y se insertarían los datos
-  
-  console.log('Importando archivo:', file.name);
-  // Aquí iría la lógica para procesar el archivo e insertarlo en la base de datos
+// Importar inventario
+export const importInventory = async (file: File): Promise<boolean> => {
+  try {
+    // En una app real, procesaríamos el archivo según su formato
+    // y luego insertaríamos los datos en la base de datos
+    
+    // Simulación de importación exitosa
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    return true;
+  } catch (error) {
+    console.error('Error al importar inventario:', error);
+    return false;
+  }
 };

@@ -209,11 +209,19 @@ const Inventory = () => {
         </header>
         
         <div className="p-6">
-          {/* Stats Section */}
-          <InventoryStats />
+          {/* Stats Section - Pasando filtros */}
+          <InventoryStats 
+            selectedSede={selectedSede}
+            selectedArea={selectedArea}
+            searchQuery={searchQuery}
+          />
           
-          {/* Chart Section */}
-          <HistoryChart />
+          {/* Chart Section - Pasando filtros */}
+          <HistoryChart 
+            selectedSede={selectedSede}
+            selectedArea={selectedArea}
+            searchQuery={searchQuery}
+          />
           
           {/* Filters Section */}
           <InventoryFilters 
