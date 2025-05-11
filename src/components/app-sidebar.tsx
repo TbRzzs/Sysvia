@@ -38,11 +38,11 @@ export function AppSidebar() {
       <div className="p-4 flex items-center justify-center border-b">
         {isCollapsed ? (
           <div className="p-1 flex justify-center">
-            <div className="text-envio-red font-bold text-2xl">e</div>
+            <div className="text-envio-red font-bold text-2xl"><img src="envia-logo.png" alt="" /></div>
           </div>
         ) : (
           <img 
-            src="/lovable-uploads/028914a5-7d44-4928-83e2-2f46905306f7.png" 
+            src="envia-logo.png" 
             alt="Envía Logo" 
             className="h-8" 
             style={{ objectFit: 'contain' }}
