@@ -26,10 +26,8 @@ export const InventoryFilters: React.FC<InventoryFiltersProps> = ({
 }) => {
   const { equipos } = useEquipment();
   
-  // Obtener sedes únicas
   const sedes = ['Todos', ...new Set(equipos.map(e => e.sede).filter(Boolean))];
   
-  // Obtener áreas únicas
   const areas = ['Todos', ...new Set(equipos.map(e => e.area).filter(Boolean))];
   
   return (

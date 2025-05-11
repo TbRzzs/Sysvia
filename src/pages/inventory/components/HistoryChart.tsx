@@ -18,23 +18,18 @@ export const HistoryChart: React.FC<HistoryChartProps> = ({
 }) => {
   const { chartData, loading } = useChartData();
   
-  // Filtrar datos de la gráfica según los filtros aplicados
   const filteredChartData = useMemo(() => {
     if (!chartData || chartData.length === 0) return [];
     
-    // Si no hay filtros activos, devolver todos los datos
     if (selectedSede === "Todos" && selectedArea === "Todos" && !searchQuery) {
       return chartData;
     }
     
-    // Aplicar factores de ajuste basados en los filtros
     return chartData.map(point => {
       const sedeFilter = selectedSede !== "Todos" ? 0.7 : 1;
       const areaFilter = selectedArea !== "Todos" ? 0.8 : 1;
       const searchFilter = searchQuery ? 0.9 : 1;
-      
-      // Calculamos factores diferentes para cada tipo de equipo
-      // para simular que los filtros afectan de manera distinta a cada categoría
+
       const desktopFactor = sedeFilter * (selectedSede === "Sede Principal" ? 1.2 : 0.8) * 
                            areaFilter * (selectedArea === "Administración" ? 1.3 : 0.9) * 
                            searchFilter;

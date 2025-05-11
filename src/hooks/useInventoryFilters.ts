@@ -8,7 +8,6 @@ export const useInventoryFilters = (equipos: Equipo[]) => {
   const [selectedArea, setSelectedArea] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Obtener sedes únicas
   const sedes = useMemo(() => {
     const uniqueSedes = new Set<string>();
     equipos.forEach(equipo => {
@@ -19,7 +18,6 @@ export const useInventoryFilters = (equipos: Equipo[]) => {
     return ['Todos', ...Array.from(uniqueSedes)];
   }, [equipos]);
   
-  // Obtener áreas únicas
   const areas = useMemo(() => {
     const uniqueAreas = new Set<string>();
     equipos.forEach(equipo => {
@@ -30,10 +28,8 @@ export const useInventoryFilters = (equipos: Equipo[]) => {
     return ['Todos', ...Array.from(uniqueAreas)];
   }, [equipos]);
   
-  // Filtrar los equipos basados en los filtros seleccionados
   const filteredEquipos = useMemo(() => {
     return equipos.filter(equipo => {
-      // Filtrar por búsqueda
       const matchesSearch = searchQuery 
         ? (equipo.hostname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
            equipo.ip?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -42,12 +38,10 @@ export const useInventoryFilters = (equipos: Equipo[]) => {
            equipo.activo?.toLowerCase().includes(searchQuery.toLowerCase()))
         : true;
         
-      // Filtrar por sede
       const matchesSede = selectedSede === "Todos" 
         ? true 
         : equipo.sede === selectedSede;
         
-      // Filtrar por área
       const matchesArea = selectedArea === "Todos" 
         ? true 
         : equipo.area === selectedArea;
@@ -56,12 +50,10 @@ export const useInventoryFilters = (equipos: Equipo[]) => {
     });
   }, [equipos, searchQuery, selectedSede, selectedArea]);
   
-  // Reiniciar página cuando cambian los filtros
   useMemo(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedSede, selectedArea]);
   
-  // Páginar los resultados
   const itemsPerPage = 10;
   const paginatedEquipos = useMemo(() => {
     return filteredEquipos.slice(

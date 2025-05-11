@@ -46,7 +46,7 @@ export const useEquipment = () => {
         title: 'Éxito',
         description: 'El equipo ha sido agregado correctamente',
       });
-      await fetchEquipos(); // Refrescar lista
+      await fetchEquipos();
     } catch (err: any) {
       setError(err);
       toast({
@@ -67,7 +67,7 @@ export const useEquipment = () => {
         title: 'Éxito',
         description: 'El equipo ha sido actualizado correctamente',
       });
-      await fetchEquipos(); // Refrescar lista
+      await fetchEquipos();  
     } catch (err: any) {
       setError(err);
       toast({
@@ -88,7 +88,7 @@ export const useEquipment = () => {
         title: 'Éxito',
         description: 'El equipo ha sido eliminado correctamente',
       });
-      await fetchEquipos(); // Refrescar lista
+      await fetchEquipos();
     } catch (err: any) {
       setError(err);
       toast({
@@ -109,7 +109,7 @@ export const useEquipment = () => {
         title: 'Éxito',
         description: `${ids.length} equipos han sido eliminados correctamente`,
       });
-      await fetchEquipos(); // Refrescar lista
+      await fetchEquipos();
     } catch (err: any) {
       setError(err);
       toast({

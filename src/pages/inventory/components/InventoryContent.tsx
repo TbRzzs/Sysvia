@@ -46,28 +46,24 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
   onExportOpen,
   onImportOpen
 }) => {
-  // Resetear página actual cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedSede, selectedArea, setCurrentPage]);
 
   return (
     <div className="p-6">
-      {/* Stats Section - Pasando filtros */}
       <InventoryStats 
         selectedSede={selectedSede}
         selectedArea={selectedArea}
         searchQuery={searchQuery}
       />
       
-      {/* Chart Section - Pasando filtros */}
       <HistoryChart 
         selectedSede={selectedSede}
         selectedArea={selectedArea}
         searchQuery={searchQuery}
       />
       
-      {/* Filters Section */}
       <InventoryFilters 
         onSearch={setSearchQuery}
         selectedSede={selectedSede}
@@ -78,7 +74,6 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
         onImport={onImportOpen}
       />
       
-      {/* Equipment Table */}
       <EquipmentTable 
         data={paginatedEquipos}
         loading={loading}

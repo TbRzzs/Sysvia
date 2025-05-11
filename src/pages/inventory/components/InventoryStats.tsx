@@ -18,24 +18,20 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
 }) => {
   const { equipos, loading } = useEquipment();
   
-  // Filtramos los equipos según los criterios seleccionados
   const filteredEquipos = useMemo(() => {
     if (!equipos.length) return [];
     
     return equipos.filter(equipo => {
-      // Filtrar por búsqueda
       const matchesSearch = searchQuery 
         ? equipo.hostname.toLowerCase().includes(searchQuery.toLowerCase()) ||
           equipo.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (equipo.responsable && equipo.responsable.toLowerCase().includes(searchQuery.toLowerCase()))
         : true;
         
-      // Filtrar por sede
       const matchesSede = selectedSede === "Todos" 
         ? true 
         : equipo.sede === selectedSede;
         
-      // Filtrar por área
       const matchesArea = selectedArea === "Todos" 
         ? true 
         : equipo.area === selectedArea;
@@ -55,16 +51,13 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
     );
   }
   
-  // Calcular estadísticas a partir de los datos filtrados
   const totalEquipos = filteredEquipos.length;
   const dispositivosMoviles = filteredEquipos.filter(e => e.tipoEquipo === 'Laptop').length;
   const servidores = filteredEquipos.filter(e => e.tipoEquipo === 'Servidor').length;
   const desktops = filteredEquipos.filter(e => e.tipoEquipo === 'Desktop').length;
   
-  // Obtener la fecha del último equipo registrado
   const lastCreatedAtISODate = filteredEquipos.length > 0 
     ? new Date(Math.max(...filteredEquipos.map(e => {
-        // Handle null/undefined created_at safely
         const date = e.created_at ? new Date(e.created_at).getTime() : Date.now();
         return date;
       })))

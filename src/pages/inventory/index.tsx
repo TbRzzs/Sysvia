@@ -3,30 +3,25 @@ import React, { useState } from 'react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { useToast } from '@/hooks/use-toast';
 
-// Import components
 import { InventoryHeader } from './components/InventoryHeader';
 import { InventoryContent } from './components/InventoryContent';
 import { AddEquipmentForm } from './components/AddEquipmentForm';
 import { ImportExportModals } from './components/ImportExportModals';
 
-// Import hooks
 import { useEquipment } from '@/hooks/useEquipment';
 import { useInventorySelection } from '@/hooks/useInventorySelection';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import { Equipo } from '@/services/equipmentService';
 
 const Inventory = () => {
-  // Estados para modales
   const [addEquipoModalOpen, setAddEquipoModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   
-  // Hook de toast
   const { toast } = useToast();
   
-  // Hook de equipos
   const { 
     equipos, 
     loading, 
@@ -36,7 +31,6 @@ const Inventory = () => {
     fetchEquipos 
   } = useEquipment();
   
-  // Hook de selección
   const {
     selectedItems,
     expandedItems,
@@ -45,7 +39,6 @@ const Inventory = () => {
     clearSelection
   } = useInventorySelection();
   
-  // Hook de filtrado
   const {
     searchQuery,
     setSearchQuery,
@@ -59,7 +52,6 @@ const Inventory = () => {
     paginatedEquipos
   } = useInventoryFilters(equipos);
   
-  // Estado para equipo nuevo/edición
   const [newEquipo, setNewEquipo] = useState<Partial<Equipo>>({
     hostname: '',
     ip: '',
@@ -79,27 +71,22 @@ const Inventory = () => {
     monitor: false,
   });
   
-  // Manejar añadir equipo
   const handleAddEquipo = (equipo: Partial<Equipo>) => {
     if (isEditMode && equipo.id) {
-      // Editar equipo existente
       editEquipo(equipo.id, equipo);
       setIsEditMode(false);
     } else {
-      // Añadir nuevo equipo
       addEquipo(equipo as Omit<Equipo, 'id'>);
     }
     setAddEquipoModalOpen(false);
   };
   
-  // Manejar edición de equipo
   const handleEditEquipo = (equipo: Equipo) => {
     setNewEquipo(equipo);
     setIsEditMode(true);
     setAddEquipoModalOpen(true);
   };
   
-  // Manejar eliminación de equipos seleccionados
   const handleDeleteSelected = () => {
     const ids = selectedItems.map(item => item.id);
     removeSelectedEquipos(ids);
@@ -107,7 +94,6 @@ const Inventory = () => {
     clearSelection();
   };
   
-  // Abrir modal para añadir equipo
   const handleOpenAddEquipoModal = () => {
     setIsEditMode(false);
     setAddEquipoModalOpen(true);
@@ -146,7 +132,6 @@ const Inventory = () => {
         />
       </div>
 
-      {/* Modals */}
       <AddEquipmentForm 
         open={addEquipoModalOpen}
         onOpenChange={setAddEquipoModalOpen}

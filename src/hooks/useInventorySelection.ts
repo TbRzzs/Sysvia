@@ -8,21 +8,18 @@ export const useInventorySelection = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const isMobile = useIsMobile();
   
-  // Seleccionar/deseleccionar ítem
   const toggleSelectItem = (item: Equipo) => {
     if (selectedItems.some(selectedItem => selectedItem.id === item.id)) {
       setSelectedItems(selectedItems.filter(selectedItem => selectedItem.id !== item.id));
     } else {
       setSelectedItems([...selectedItems, item]);
       
-      // En móvil, al seleccionar un ítem, expandirlo automáticamente
       if (isMobile && !expandedItems.includes(item.id)) {
         setExpandedItems([...expandedItems, item.id]);
       }
     }
   };
   
-  // Expandir/colapsar ítem
   const toggleExpandItem = (id: string) => {
     if (expandedItems.includes(id)) {
       setExpandedItems(expandedItems.filter(itemId => itemId !== id));
@@ -31,7 +28,6 @@ export const useInventorySelection = () => {
     }
   };
   
-  // Limpiar selección
   const clearSelection = () => {
     setSelectedItems([]);
   };

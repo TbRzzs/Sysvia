@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Tipos
 export interface ChartDataPoint {
   name: string;
   desktop: number;
@@ -40,7 +39,6 @@ export interface Equipo {
   updated_at?: string;
 }
 
-// Obtener datos para el gráfico
 export const getChartData = async (): Promise<ChartDataPoint[]> => {
   try {
     const { data, error } = await supabase
@@ -49,8 +47,7 @@ export const getChartData = async (): Promise<ChartDataPoint[]> => {
       .order('id');
 
     if (error) throw error;
-    
-    // Transform the data to match ChartDataPoint interface
+
     return (data || []).map(item => ({
       name: item.mes,
       desktop: item.desktop || 0,
@@ -62,20 +59,17 @@ export const getChartData = async (): Promise<ChartDataPoint[]> => {
     return [];
   }
 };
-
-// Obtener todos los equipos
 export const fetchEquipos = async (): Promise<Equipo[]> => {
   try {
     const { data, error } = await supabase
       .from('equipos')
       .select('*')
       .order('hostname');
-      
+
     if (error) throw error;
 
     const equipos = await Promise.all(
       (data || []).map(async (equipo) => {
-        // Map database column names to our interface properties
         const mappedEquipo: Equipo = {
           id: equipo.id,
           hostname: equipo.hostname,
@@ -85,20 +79,19 @@ export const fetchEquipos = async (): Promise<Equipo[]> => {
           responsable: equipo.responsable || '',
           mac: equipo.mac || '',
           procesador: equipo.procesador || '',
-          memoriaRam: equipo.memoriaram || '',  // Note: DB column name might be memoriaram
-          discoDuro: equipo.discoduro || '',    // Note: DB column name might be discoduro
-          tipoDisco: equipo.tipodisco || '',    // Note: DB column name might be tipodisco
+          memoriaRam: equipo.memoriaram || '',
+          discoDuro: equipo.discoduro || '',
+          tipoDisco: equipo.tipodisco || '',
           activo: equipo.activo || '',
           marca: equipo.marca || '',
           referencia: equipo.referencia || '',
           serial: equipo.serial || '',
-          tipoEquipo: equipo.tipoequipo || '',  // Note: DB column name might be tipoequipo
+          tipoEquipo: equipo.tipoequipo || '',
           monitor: equipo.monitor || false,
           created_at: equipo.created_at,
           updated_at: equipo.updated_at
         };
 
-        // If equipment has a monitor, fetch its details
         if (mappedEquipo.monitor) {
           const { data: monitorData } = await supabase
             .from('monitores')
@@ -116,11 +109,11 @@ export const fetchEquipos = async (): Promise<Equipo[]> => {
             };
           }
         }
-        
+
         return mappedEquipo;
       })
     );
-    
+
     return equipos;
   } catch (error) {
     console.error('Error al obtener equipos:', error);
@@ -128,10 +121,8 @@ export const fetchEquipos = async (): Promise<Equipo[]> => {
   }
 };
 
-// Alias para compatibilidad con el hook existente
 export const getEquipos = fetchEquipos;
 
-// Obtener un equipo con sus detalles
 export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null> => {
   try {
     const { data, error } = await supabase
@@ -139,11 +130,9 @@ export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null>
 
     if (error) throw error;
     if (!data) return null;
-    
-    // Convertir el resultado a un objeto Equipo
-    // Usando type assertion con as para ayudar con la tipización
+
     const result = data as any;
-    
+
     const equipo: Equipo = {
       id: result.id,
       hostname: result.hostname,
@@ -165,8 +154,7 @@ export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null>
       created_at: result.created_at,
       updated_at: result.updated_at
     };
-      
-    // Añadir monitor si existe
+
     if (equipo.monitor && result.monitorInfo) {
       equipo.monitorInfo = {
         id: result.monitorInfo.id,
@@ -176,7 +164,7 @@ export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null>
         estado: result.monitorInfo.estado || ''
       };
     }
-      
+
     return equipo;
   } catch (error) {
     console.error('Error al obtener equipo con detalles:', error);
@@ -184,10 +172,8 @@ export const fetchEquipoConDetalles = async (id: string): Promise<Equipo | null>
   }
 };
 
-// Añadir un nuevo equipo
 export const createEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo | null> => {
   try {
-    // First, insert the equipo
     const { data: equipoData, error: equipoError } = await supabase
       .from('equipos')
       .insert([{
@@ -198,22 +184,21 @@ export const createEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo |
         responsable: equipo.responsable,
         mac: equipo.mac,
         procesador: equipo.procesador,
-        memoriaram: equipo.memoriaRam,  // Note DB column name
-        discoduro: equipo.discoDuro,    // Note DB column name
-        tipodisco: equipo.tipoDisco,    // Note DB column name
+        memoriaram: equipo.memoriaRam,
+        discoduro: equipo.discoDuro,
+        tipodisco: equipo.tipoDisco,
         activo: equipo.activo,
         marca: equipo.marca,
         referencia: equipo.referencia,
         serial: equipo.serial,
-        tipoequipo: equipo.tipoEquipo,  // Note DB column name
+        tipoequipo: equipo.tipoEquipo,
         monitor: equipo.monitor
       }])
       .select()
       .single();
 
     if (equipoError) throw equipoError;
-    
-    // Si tiene monitor, insertar el monitor asociado
+
     if (equipo.monitor && equipo.monitorInfo) {
       const { error: monitorError } = await supabase
         .from('monitores')
@@ -228,7 +213,6 @@ export const createEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo |
       if (monitorError) throw monitorError;
     }
 
-    // Devolver el equipo insertado con formato de nuestra interfaz
     return {
       id: equipoData.id,
       hostname: equipoData.hostname,
@@ -255,48 +239,43 @@ export const createEquipo = async (equipo: Omit<Equipo, 'id'>): Promise<Equipo |
   }
 };
 
-// Alias para compatibilidad con el hook existente
 export const addEquipo = createEquipo;
 
-// Actualizar un equipo existente
 export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Promise<Equipo | null> => {
   try {
     const monitorInfo = equipoData.monitorInfo;
     const dataToUpdate: any = { ...equipoData };
     delete dataToUpdate.monitorInfo;
-    
-    // Map properties to DB column names
+
     if (dataToUpdate.memoriaRam !== undefined) {
       dataToUpdate.memoriaram = dataToUpdate.memoriaRam;
       delete dataToUpdate.memoriaRam;
     }
-    
+
     if (dataToUpdate.discoDuro !== undefined) {
       dataToUpdate.discoduro = dataToUpdate.discoDuro;
       delete dataToUpdate.discoDuro;
     }
-    
+
     if (dataToUpdate.tipoDisco !== undefined) {
       dataToUpdate.tipodisco = dataToUpdate.tipoDisco;
       delete dataToUpdate.tipoDisco;
     }
-    
+
     if (dataToUpdate.tipoEquipo !== undefined) {
       dataToUpdate.tipoequipo = dataToUpdate.tipoEquipo;
       delete dataToUpdate.tipoEquipo;
     }
 
-    // Actualizar el equipo
     const { data, error: equipoError } = await supabase
       .from('equipos')
       .update(dataToUpdate)
       .eq('id', id)
       .select()
       .single();
-      
+
     if (equipoError) throw equipoError;
 
-    // Si tiene monitor, actualizar o insertar el monitor asociado
     if (equipoData.monitor && monitorInfo) {
       const { data: existingMonitor } = await supabase
         .from('monitores')
@@ -305,7 +284,6 @@ export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Pro
         .maybeSingle();
 
       if (existingMonitor) {
-        // Actualizar monitor existente
         const { error: monitorError } = await supabase
           .from('monitores')
           .update({
@@ -318,7 +296,6 @@ export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Pro
 
         if (monitorError) throw monitorError;
       } else {
-        // Insertar nuevo monitor
         const { error: monitorError } = await supabase
           .from('monitores')
           .insert([{
@@ -332,7 +309,6 @@ export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Pro
         if (monitorError) throw monitorError;
       }
     } else if (!equipoData.monitor) {
-      // Si ya no tiene monitor, eliminar el monitor asociado
       const { error: monitorDeleteError } = await supabase
         .from('monitores')
         .delete()
@@ -341,7 +317,6 @@ export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Pro
       if (monitorDeleteError) throw monitorDeleteError;
     }
 
-    // Devolver el equipo actualizado con monitor si existe
     return await fetchEquipoConDetalles(id);
   } catch (error) {
     console.error('Error al actualizar equipo:', error);
@@ -349,10 +324,8 @@ export const updateEquipo = async (id: string, equipoData: Partial<Equipo>): Pro
   }
 };
 
-// Alias para compatibilidad
 export const editEquipo = updateEquipo;
 
-// Eliminar un equipo
 export const deleteEquipo = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -368,10 +341,8 @@ export const deleteEquipo = async (id: string): Promise<boolean> => {
   }
 };
 
-// Eliminar equipos seleccionados
 export const deleteEquipos = async (ids: string[]): Promise<boolean> => {
   try {
-    // Eliminar los equipos seleccionados
     const { error } = await supabase
       .from('equipos')
       .delete()
@@ -385,31 +356,24 @@ export const deleteEquipos = async (ids: string[]): Promise<boolean> => {
   }
 };
 
-// Exportar inventario
 export const exportInventory = async (format: 'xlsx' | 'csv' | 'pdf'): Promise<Blob> => {
   try {
-    // Obtener todos los equipos
     const equipos = await fetchEquipos();
-    
-    // Crear un archivo blob según el formato
     let blob: Blob;
-    
+
     if (format === 'csv') {
-      // Crear CSV
       const headers = 'Hostname,IP,Sede,Area,Responsable,MAC,Procesador,MemoriaRam,DiscoDuro,TipoDisco,Activo,Marca,Referencia,Serial,TipoEquipo,Monitor\n';
-      const rows = equipos.map(e => 
+      const rows = equipos.map(e =>
         `${e.hostname},${e.ip},${e.sede},${e.area},${e.responsable},${e.mac},${e.procesador},${e.memoriaRam},${e.discoDuro},${e.tipoDisco},${e.activo},${e.marca},${e.referencia},${e.serial},${e.tipoEquipo},${e.monitor}`
       ).join('\n');
-      
+
       blob = new Blob([headers + rows], { type: 'text/csv' });
     } else if (format === 'xlsx') {
-      // Simulación de XLSX (en una app real, usaríamos una librería como ExcelJS)
       blob = new Blob(['Simulación de archivo XLSX'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     } else {
-      // Simulación de PDF (en una app real, usaríamos una librería como pdfmake)
       blob = new Blob(['Simulación de archivo PDF'], { type: 'application/pdf' });
     }
-    
+
     return blob;
   } catch (error) {
     console.error('Error al exportar inventario:', error);
@@ -417,15 +381,9 @@ export const exportInventory = async (format: 'xlsx' | 'csv' | 'pdf'): Promise<B
   }
 };
 
-// Importar inventario
 export const importInventory = async (file: File): Promise<boolean> => {
   try {
-    // En una app real, procesaríamos el archivo según su formato
-    // y luego insertaríamos los datos en la base de datos
-    
-    // Simulación de importación exitosa
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
     return true;
   } catch (error) {
     console.error('Error al importar inventario:', error);
