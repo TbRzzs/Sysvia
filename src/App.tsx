@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Inventory from './pages/inventory';
 import Mantenimiento from './pages/mantenimiento';
@@ -58,12 +59,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <AppRoutes />
-        <Toaster />
-      </AuthProvider>
-    </Router>
+    <React.StrictMode>
+      <Router>
+        <AuthProvider>
+          <AppRoutes />
+          <Toaster />
+        </AuthProvider>
+      </Router>
+    </React.StrictMode>
   );
 }
 
