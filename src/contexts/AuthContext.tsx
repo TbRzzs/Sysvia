@@ -81,15 +81,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        console.error("Error de autenticación:", error.message);
+        throw error;
+      }
       toast({
         title: "Login exitoso",
         description: "Has iniciado sesión correctamente",
       });
     } catch (error: any) {
+      console.error("Detalles del error:", error);
       toast({
         title: "Error al iniciar sesión",
-        description: error.message || "Ha ocurrido un error al iniciar sesión",
+        description: "Credenciales inválidas. Por favor verifica tu email y contraseña.",
         variant: "destructive",
       });
       throw error;

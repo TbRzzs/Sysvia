@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -50,8 +51,67 @@ const AuthPage = () => {
     try {
       await signIn(data.email, data.password);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Mostrar un mensaje de error más descriptivo
+      toast({
+        title: "Error al iniciar sesión",
+        description: error.message || "Credenciales inválidas. Por favor verifica tu email y contraseña.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const createAdminUserAndLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      const testEmail = 'admin@enviacolombia.com';
+      const testPassword = 'admin123456'; // Changed to longer password
+      
+      // Primero intentamos iniciar sesión
+      try {
+        await signIn(testEmail, testPassword);
+        navigate('/');
+        return;
+      } catch (error) {
+        console.log('Usuario no existe, creando uno nuevo...');
+        
+        // Si falla el inicio de sesión, creamos un nuevo usuario
+        const { data, error } = await supabase.auth.signUp({
+          email: testEmail,
+          password: testPassword,
+          options: {
+            data: {
+              full_name: 'Administrador',
+              department: 'TI',
+            }
+          }
+        });
+        
+        if (error) throw error;
+        
+        // Iniciar sesión automáticamente
+        if (data) {
+          await signIn(testEmail, testPassword);
+          
+          toast({
+            title: "Usuario administrador creado",
+            description: "Se ha creado y autenticado como administrador automáticamente.",
+          });
+          
+          navigate('/');
+        }
+      }
+    } catch (error: any) {
+      console.error('Error al crear/autenticar usuario admin:', error);
+      toast({
+        title: "Error al crear usuario administrador",
+        description: error.message || "No se pudo crear el usuario administrador.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -59,10 +119,10 @@ const AuthPage = () => {
 
   const fillTestCredentials = () => {
     loginForm.setValue('email', 'admin@enviacolombia.com');
-    loginForm.setValue('password', 'admin123');
+    loginForm.setValue('password', 'admin123456'); // Cambiado a contraseña más larga
     toast({
       title: "Credenciales de prueba cargadas",
-      description: "Puedes iniciar sesión con estos datos o modificarlos",
+      description: "Puedes iniciar sesión con estos datos.",
     });
   };
 
@@ -126,6 +186,23 @@ const AuthPage = () => {
                 onClick={fillTestCredentials}
               >
                 Usar credenciales de prueba
+              </Button>
+              
+              <Button 
+                type="button"
+                variant="secondary"
+                className="w-full mt-2"
+                onClick={createAdminUserAndLogin}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creando usuario...
+                  </>
+                ) : (
+                  'Crear y acceder como administrador'
+                )}
               </Button>
             </form>
           </Form>
