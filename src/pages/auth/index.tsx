@@ -76,11 +76,11 @@ const AuthPage = () => {
         await signIn(testEmail, testPassword);
         navigate('/');
         return;
-      } catch (error) {
+      } catch (loginError) { // Changed variable name to avoid conflict
         console.log('Usuario no existe, creando uno nuevo...');
         
         // Si falla el inicio de sesión, creamos un nuevo usuario
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({ // Renamed 'error' to 'signUpError'
           email: testEmail,
           password: testPassword,
           options: {
@@ -91,7 +91,7 @@ const AuthPage = () => {
           }
         });
         
-        if (error) throw error;
+        if (signUpError) throw signUpError;
         
         // Iniciar sesión automáticamente
         if (data) {
