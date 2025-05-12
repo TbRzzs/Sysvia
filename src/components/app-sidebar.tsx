@@ -16,7 +16,7 @@ import {
   SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, Package, Tool, Users, FileText, Laptop, Printer } from 'lucide-react';
+import { LogOut, User, Settings, Package, Wrench, Users, FileText, Laptop, Printer } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function AppSidebar() {
@@ -33,7 +33,7 @@ export function AppSidebar() {
     {
       title: "Mantenimiento",
       url: "/mantenimiento",
-      icon: Tool,
+      icon: Wrench,
     },
     {
       title: "Usuarios",

@@ -102,7 +102,6 @@ const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
       sidebarRef,
       sidebarId,
       triggerId,
-      triggerRef,
     } = useSidebarContext()
 
     return (
@@ -211,14 +210,23 @@ interface SidebarTriggerProps extends React.HTMLAttributes<HTMLButtonElement> {}
 
 const SidebarTrigger = forwardRef<HTMLButtonElement, SidebarTriggerProps>(
   ({ className, ...props }, forwardedRef) => {
-    const { collapsed, setCollapsed, triggerRef, sidebarId } = useSidebarContext()
+    const { collapsed, setCollapsed, sidebarId } = useSidebarContext()
 
     return (
       <button
         ref={(node) => {
+          // Fix for TypeScript read-only property error
           if (typeof forwardedRef === "function") forwardedRef(node)
-          else if (forwardedRef) forwardedRef.current = node
-          triggerRef.current = node
+          else if (forwardedRef) {
+            // Use Object.defineProperty to set the current property
+            if (node) {
+              Object.defineProperty(forwardedRef, 'current', {
+                value: node,
+                writable: true,
+                configurable: true
+              })
+            }
+          }
         }}
         type="button"
         onClick={() => setCollapsed(!collapsed)}
@@ -399,11 +407,15 @@ const SidebarMenuButton = forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
         className={cn(
           "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50",
           collapsed && "lg:justify-center lg:gap-0",
-          asChild ? className : ""
+          !asChild && className
         )}
       >
         {asChild ? (
-          <SidebarMenuButtonContent className={className} {...props} />
+          <SidebarMenuButtonContent 
+            className={className} 
+            // Fix for type mismatch
+            {...(props as unknown as React.HTMLAttributes<HTMLDivElement>)}
+          />
         ) : (
           props.children
         )}
