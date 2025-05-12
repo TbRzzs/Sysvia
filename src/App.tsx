@@ -12,6 +12,8 @@ import AuthPage from './pages/auth';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from './pages/NotFound';
+import { AppSidebar } from './components/app-sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import './App.css';
 
 // Protected route component
@@ -30,7 +32,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" />;
   }
   
-  return <>{children}</>;
+  // If authenticated, show layout with sidebar
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 };
 
 function AppRoutes() {
@@ -59,14 +71,12 @@ function AppRoutes() {
 
 function App() {
   return (
-    <React.StrictMode>
-      <Router>
-        <AuthProvider>
-          <AppRoutes />
-          <Toaster />
-        </AuthProvider>
-      </Router>
-    </React.StrictMode>
+    <Router>
+      <AuthProvider>
+        <AppRoutes />
+        <Toaster />
+      </AuthProvider>
+    </Router>
   );
 }
 

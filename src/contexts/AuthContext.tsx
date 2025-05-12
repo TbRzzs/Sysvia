@@ -10,7 +10,6 @@ interface AuthContextType {
   profile: any | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, department: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -97,33 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, department: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            department,
-          },
-        },
-      });
-      if (error) throw error;
-      toast({
-        title: "Registro exitoso",
-        description: "Tu cuenta ha sido creada correctamente. Revisa tu correo para confirmar.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error al registrarse",
-        description: error.message || "Ha ocurrido un error al crear la cuenta",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -146,7 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile,
     loading,
     signIn,
-    signUp,
     signOut,
   };
 
